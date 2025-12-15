@@ -20,6 +20,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'analytics'
 ]
 
 MIDDLEWARE = [
@@ -56,6 +57,14 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+    },
+    'openwebui_db': {
+        'ENGINE': 'django.db.backends.postgresql', 
+        'NAME': 'openwebui',       
+        'USER': 'your_db_user',  
+        'PASSWORD': 'your_db_password',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 

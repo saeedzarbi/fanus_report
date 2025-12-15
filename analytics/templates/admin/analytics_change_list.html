@@ -1,0 +1,11 @@
+{% extends 'admin/change_list.html' %}
+{% block object-tools %}
+    <form action="." method="POST" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" name="run_analysis" 
+                style="background: #28a745; color: white; padding: 8px 15px; border: none; border-radius: 4px; cursor: pointer; margin-left: 10px;">
+            🤖 اجرای تحلیل دستی هوش مصنوعی
+        </button>
+    </form>
+    {{ block.super }}
+{% endblock %}
