@@ -5,9 +5,11 @@ from django.contrib import admin
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
+from analytics.views import dashboard
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('admin/dashboard/', dashboard, name='admin_dashboard'),
 ]
 
 if settings.DEBUG:
