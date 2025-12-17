@@ -8,8 +8,8 @@ from django.conf.urls.static import static
 from analytics.views import dashboard
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
     path('admin/dashboard/', dashboard, name='admin_dashboard'),
+    path('admin/', admin.site.urls),
 ]
 
 if settings.DEBUG:

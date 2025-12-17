@@ -93,6 +93,9 @@ USE_I18N = True
 
 USE_TZ = True
 
+# Force LTR layout for admin panel (sidebar on left)
+USE_L10N = True
+
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
@@ -102,36 +105,38 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 JAZZMIN_SETTINGS = {
-    "site_title": "فانوس",
-    "site_header": "فانوس",
+    "site_title": "سامانه هوشمند فانوس",
+    "site_header": "پنل مدیریت فانوس",
     "site_brand": "فانوس",
-    "site_logo": None,
-    "login_logo": None,
+    "site_logo": "images/logo_site.png",
+    "login_logo": "images/logo.png",
     "login_logo_dark": None,
     "site_logo_classes": "img-circle",
     "site_icon": None,
-    "welcome_sign": "خوش آمدید به سیستم تحلیل رفتاری فانوس",
+    "welcome_sign": "سامانه هوشمند تحلیل رفتاری فانوس",
     "copyright": "فانوس",
     "search_model": ["auth.User", "auth.Group", "analytics.Employee"],
     "user_avatar": None,
-    "topmenu_links": [
-        {"name": "خانه", "url": "admin:index", "permissions": ["auth.view_user"]},
-        {"name": "داشبورد", "url": "admin_dashboard", "permissions": ["auth.view_user"]},
-        {"model": "auth.User"},
-    ],
-    "usermenu_links": [
-        {"name": "داشبورد", "url": "admin_dashboard", "icon": "fas fa-chart-line"},
-        {"model": "auth.user"}
-    ],
+    "theme": "darkly",
+    "dark_mode_theme": "cyborg",
     "show_sidebar": True,
     "navigation_expanded": True,
     "hide_apps": [],
     "hide_models": [],
-    "order_with_respect_to": ["auth", "analytics"],
+    "order_with_respect_to": ["analytics", "auth"],
+    "custom_links": {
+        "analytics": [{
+            "name": "📊 داشبورد تحلیلی",
+            "url": "admin_dashboard",
+            "icon": "fas fa-chart-line",
+            "permissions": ["analytics.view_report"],
+        }],
+    },
     "icons": {
         "auth": "fas fa-users-cog",
         "auth.user": "fas fa-user",
         "auth.Group": "fas fa-users",
+        "analytics": "fas fa-chart-bar",
         "analytics.employee": "fas fa-user-tie",
         "analytics.usergroup": "fas fa-users",
         "analytics.analysistask": "fas fa-tasks",
@@ -143,14 +148,15 @@ JAZZMIN_SETTINGS = {
     "default_icon_parents": "fas fa-chevron-circle-right",
     "default_icon_children": "fas fa-circle",
     "related_modal_active": False,
+    "show_ui_builder": True,
+    "changeform_format": "horizontal_tabs",
+    "changeform_format_overrides": {
+        "auth.user": "collapsible",
+        "auth.group": "vertical_tabs",
+    },
+    "language_chooser": False,
     "custom_css": "css/custom_admin.css",
     "custom_js": None,
-    "use_google_fonts_cdn": True,
-    "show_ui_builder": False,
-    "changeform_format": "horizontal_tabs",
-    "changeform_format_overrides": {"auth.user": "collapsible", "auth.group": "vertical_tabs"},
-    "add_related_modal": False,
-    "language_chooser": False,
 }
 
 JAZZMIN_UI_TWEAKS = {
@@ -158,30 +164,15 @@ JAZZMIN_UI_TWEAKS = {
     "footer_small_text": False,
     "body_small_text": False,
     "brand_small_text": False,
-    "brand_colour": "navbar-primary",
-    "accent": "accent-primary",
-    "navbar": "navbar-dark",
-    "no_navbar_border": False,
     "navbar_fixed": True,
-    "layout_boxed": False,
     "footer_fixed": False,
     "sidebar_fixed": True,
-    "sidebar": "sidebar-dark-primary",
     "sidebar_nav_small_text": False,
     "sidebar_disable_expand": False,
     "sidebar_nav_child_indent": False,
     "sidebar_nav_compact_style": False,
     "sidebar_nav_legacy_style": False,
     "sidebar_nav_flat_style": False,
-    "theme": "default",
-    "dark_mode_theme": None,
-    "button_classes": {
-        "primary": "btn-primary",
-        "secondary": "btn-secondary",
-        "info": "btn-info",
-        "warning": "btn-warning",
-        "danger": "btn-danger",
-        "success": "btn-success"
-    }
+    "rtl": False,  # Force LTR (Left to Right)
 }
 
