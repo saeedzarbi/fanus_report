@@ -1,0 +1,181 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .metabase-container {
+        padding: 20px;
+    }
+    .metabase-header {
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid #667eea;
+    }
+    .metabase-header h1 {
+        margin: 0;
+        color: #333;
+        font-size: 2em;
+    }
+    .metabase-header p {
+        color: #666;
+        margin-top: 10px;
+    }
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+        gap: 30px;
+        margin-top: 30px;
+    }
+    .dashboard-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .dashboard-header {
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    .dashboard-header h2 {
+        margin: 0;
+        font-size: 1.5em;
+    }
+    .dashboard-header p {
+        margin: 10px 0 0 0;
+        opacity: 0.9;
+        font-size: 0.9em;
+    }
+    .dashboard-iframe-container {
+        position: relative;
+        width: 100%;
+        height: 600px;
+        overflow: hidden;
+    }
+    .dashboard-iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        display: block;
+    }
+    .dashboard-actions {
+        padding: 15px 20px;
+        background: #f8f9fa;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid #e0e0e0;
+    }
+    .btn-metabase {
+        padding: 8px 16px;
+        background: #667eea;
+        color: #ffffff !important;
+        text-decoration: none;
+        border-radius: 5px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        border: none;
+        display: inline-block;
+    }
+    .btn-metabase:hover {
+        background: #5568d3;
+        color: #ffffff !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .btn-metabase:visited,
+    .btn-metabase:active,
+    .btn-metabase:focus {
+        color: #ffffff !important;
+    }
+    .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .empty-state h2 {
+        color: #666;
+        margin-bottom: 15px;
+    }
+    .empty-state p {
+        color: #999;
+        margin-bottom: 20px;
+    }
+    .back-link {
+        display: inline-block;
+        margin-bottom: 20px;
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+    }
+    .back-link:hover {
+        text-decoration: underline;
+    }
+    .loading-indicator {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #667eea;
+        font-size: 1.2em;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="metabase-container">
+    <a href="/admin/dashboard/" class="back-link">← بازگشت به داشبورد</a>
+    
+    <div class="metabase-header">
+        <h1>📊 نمودارهای تحلیلی Metabase</h1>
+        <p>در این بخش می‌توانید نمودارها و داشبوردهای تحلیلی را مشاهده کنید</p>
+    </div>
+
+    {% if has_dashboards %}
+        <div class="dashboard-grid">
+            {% for dashboard in dashboards %}
+            <div class="dashboard-card">
+                <div class="dashboard-header">
+                    <h2>{{ dashboard.name }}</h2>
+                    {% if dashboard.description %}
+                    <p>{{ dashboard.description }}</p>
+                    {% endif %}
+                </div>
+                <div class="dashboard-iframe-container">
+                    <div class="loading-indicator">در حال بارگذاری...</div>
+                    <iframe 
+                        class="dashboard-iframe"
+                        src="{{ dashboard.embed_url }}"
+                        frameborder="0"
+                        allowtransparency="true"
+                        onload="this.parentElement.querySelector('.loading-indicator').style.display='none'"
+                    ></iframe>
+                </div>
+                <div class="dashboard-actions">
+                    <span style="color: #666; font-size: 0.9em;">ID: {{ dashboard.dashboard_id }}</span>
+                    <a href="{{ dashboard.full_url }}" target="_blank" class="btn-metabase">
+                        مشاهده در Metabase →
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="empty-state">
+            <h2>هیچ نموداری تنظیم نشده است</h2>
+            <p>لطفاً در فایل settings.py تنظیمات METABASE_DASHBOARDS را پیکربندی کنید.</p>
+            <p style="font-size: 0.9em; color: #999;">
+                URL Metabase: {{ metabase_url|default:"تنظیم نشده" }}
+            </p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

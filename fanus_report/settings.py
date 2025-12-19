@@ -104,6 +104,25 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Metabase Configuration
+METABASE_SITE_URL = 'http://localhost:3000'  # URL سرویس Metabase شما
+METABASE_SECRET_KEY = ''  # Secret Key برای signed embedding (اختیاری)
+# لیست نمودارهای Metabase که می‌خواهید نمایش دهید
+# فرمت: {'name': 'نام نمایشی', 'dashboard_id': 'ID داشبورد', 'card_id': 'ID کارت (اختیاری)'}
+METABASE_DASHBOARDS = [
+    {
+        'name': 'داشبورد اصلی',
+        'dashboard_id': 1,
+        'description': 'نمای کلی آمار و تحلیل‌ها'
+    },
+    # می‌توانید نمودارهای بیشتری اضافه کنید
+    # {
+    #     'name': 'تحلیل احساسات',
+    #     'dashboard_id': 2,
+    #     'description': 'نمودارهای تحلیل احساسات'
+    # },
+]
+
 JAZZMIN_SETTINGS = {
     "site_title": "سامانه هوشمند فانوس",
     "site_header": "پنل مدیریت فانوس",

@@ -1,0 +1,320 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    * {
+        box-sizing: border-box;
+    }
+    
+    .reports-wrapper {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        padding: 30px 20px 20px 20px;
+    }
+    
+    .reports-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 20px;
+        margin-bottom: 25px;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .reports-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        animation: pulse 8s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 0.5; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+    }
+    
+    .reports-header h1 {
+        margin: 0;
+        font-size: 2.5em;
+        font-weight: 700;
+        position: relative;
+        z-index: 1;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    
+    .reports-header p {
+        margin: 10px 0 0 0;
+        opacity: 0.95;
+        font-size: 1.1em;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .back-link {
+        display: inline-block;
+        margin-bottom: 15px;
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+        padding: 10px 20px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .back-link:hover {
+        transform: translateX(-5px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    }
+    
+    .users-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 25px;
+        padding-bottom: 0;
+    }
+    
+    .user-card {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.05);
+        cursor: pointer;
+    }
+    
+    .user-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.3s ease;
+    }
+    
+    .user-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+    }
+    
+    .user-card:hover::before {
+        transform: scaleX(1);
+    }
+    
+    .user-card-header {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .user-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+        font-weight: 700;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .user-info h3 {
+        margin: 0;
+        font-size: 1.3em;
+        color: #1f2937;
+        font-weight: 700;
+    }
+    
+    .user-info p {
+        margin: 5px 0 0 0;
+        color: #6b7280;
+        font-size: 0.9em;
+    }
+    
+    .user-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #e5e7eb;
+    }
+    
+    .stat-item {
+        text-align: center;
+    }
+    
+    .stat-value {
+        font-size: 1.8em;
+        font-weight: 700;
+        color: #667eea;
+        display: block;
+    }
+    
+    .stat-label {
+        font-size: 0.85em;
+        color: #6b7280;
+        margin-top: 5px;
+    }
+    
+    .risk-badge {
+        display: inline-block;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.85em;
+        font-weight: 600;
+        margin-top: 10px;
+    }
+    
+    .risk-low {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+    }
+    
+    .risk-medium {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+    }
+    
+    .risk-high {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        color: white;
+    }
+    
+    .view-report-btn {
+        margin-top: 15px;
+        padding: 12px 24px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-decoration: none;
+        border-radius: 12px;
+        display: inline-block;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        width: 100%;
+        text-align: center;
+    }
+    
+    .view-report-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        color: white;
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 40px 20px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+    }
+    
+    .empty-state i {
+        font-size: 4em;
+        color: #d1d5db;
+        margin-bottom: 15px;
+    }
+    
+    @media (max-width: 768px) {
+        .users-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .reports-header h1 {
+            font-size: 1.8em;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="reports-wrapper">
+    <a href="/admin/dashboard/" class="back-link">
+        <i class="fas fa-arrow-right"></i> بازگشت به داشبورد
+    </a>
+    
+    <div class="reports-header">
+        <h1><i class="fas fa-user-chart"></i> گزارشات کاربران</h1>
+        <p>مشاهده و تحلیل گزارشات رفتاری هر کاربر</p>
+    </div>
+
+    {% if employees_with_stats %}
+    <div class="users-grid">
+        {% for item in employees_with_stats %}
+        <div class="user-card" onclick="window.location='/admin/user-reports/{{ item.employee.user_id }}/'">
+            <div class="user-card-header">
+                <div class="user-avatar">
+                    {{ item.employee.name|first|upper }}
+                </div>
+                <div class="user-info">
+                    <h3>{{ item.employee.name }}</h3>
+                    <p>
+                        {% if item.employee.department %}
+                        <i class="fas fa-building"></i> {{ item.employee.department }}
+                        {% endif %}
+                        {% if item.employee.email %}
+                        <br><i class="fas fa-envelope"></i> {{ item.employee.email }}
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+            
+            <div class="user-stats">
+                <div class="stat-item">
+                    <span class="stat-value">{{ item.stats.total_analyses }}</span>
+                    <span class="stat-label">تحلیل‌ها</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value" style="color: {% if item.stats.risky_count > 0 %}#f5576c{% else %}#38ef7d{% endif %};">{{ item.stats.risky_count }}</span>
+                    <span class="stat-label">ریسکی</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-value">{{ item.stats.avg_sentiment }}</span>
+                    <span class="stat-label">احساس</span>
+                </div>
+            </div>
+            
+            {% if item.stats.most_common_category %}
+            <div style="margin-top: 15px; text-align: center;">
+                <span class="risk-badge risk-low">
+                    <i class="fas fa-tag"></i> {{ item.stats.most_common_category.category }}
+                </span>
+            </div>
+            {% endif %}
+            
+            <a href="/admin/user-reports/{{ item.employee.user_id }}/" class="view-report-btn">
+                <i class="fas fa-chart-line"></i> مشاهده گزارش کامل
+            </a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-users"></i>
+        <h2>هیچ کاربری یافت نشد</h2>
+        <p>لطفاً ابتدا کاربران را از دیتابیس سینک کنید.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

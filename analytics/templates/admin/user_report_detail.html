@@ -1,0 +1,495 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    * {
+        box-sizing: border-box;
+    }
+    
+    .report-wrapper {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        padding: 30px 20px 20px 20px;
+    }
+    
+    .report-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        border-radius: 20px;
+        margin-bottom: 25px;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .report-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        animation: pulse 8s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 0.5; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+    }
+    
+    .report-header-content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+    
+    .report-header h1 {
+        margin: 0;
+        font-size: 2.5em;
+        font-weight: 700;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+    
+    .report-header p {
+        margin: 10px 0 0 0;
+        opacity: 0.95;
+        font-size: 1.1em;
+    }
+    
+    .period-selector {
+        display: flex;
+        gap: 10px;
+        background: rgba(255,255,255,0.2);
+        padding: 10px;
+        border-radius: 10px;
+    }
+    
+    .period-selector a {
+        padding: 8px 16px;
+        background: rgba(255,255,255,0.2);
+        color: white;
+        text-decoration: none;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        font-weight: 600;
+    }
+    
+    .period-selector a:hover,
+    .period-selector a.active {
+        background: white;
+        color: #667eea;
+    }
+    
+    .back-link {
+        display: inline-block;
+        margin-bottom: 15px;
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+        padding: 10px 20px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .back-link:hover {
+        transform: translateX(-5px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 25px;
+        margin-bottom: 0;
+    }
+    
+    .stat-card {
+        background: white;
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 5px;
+        background: var(--card-gradient);
+    }
+    
+    .stat-card.success {
+        --card-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+    
+    .stat-card.info {
+        --card-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+    
+    .stat-card.warning {
+        --card-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    
+    .stat-card.danger {
+        --card-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+    
+    .stat-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0;
+    }
+    
+    .stat-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: white;
+        background: var(--card-gradient);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    }
+    
+    .stat-content {
+        flex: 1;
+    }
+    
+    .stat-label {
+        font-size: 0.95em;
+        color: #6b7280;
+        font-weight: 500;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .stat-value {
+        font-size: 2.8em;
+        font-weight: 700;
+        color: #1f2937;
+        margin: 0;
+        line-height: 1;
+    }
+    
+    .section-card {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        margin-bottom: 0;
+        border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .section-card:last-child {
+        margin-bottom: 0;
+    }
+    
+    .section-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f3f4f6;
+    }
+    
+    .section-header h2 {
+        margin: 0;
+        font-size: 1.8em;
+        font-weight: 700;
+        color: #1f2937;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .section-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 20px;
+    }
+    
+    .category-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+    }
+    
+    .category-item {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        padding: 18px;
+        border-radius: 15px;
+        text-align: center;
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+    }
+    
+    .category-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+    
+    .category-item .value {
+        font-size: 2em;
+        font-weight: 700;
+        color: #667eea;
+        display: block;
+    }
+    
+    .category-item .label {
+        font-size: 0.9em;
+        color: #6b7280;
+        margin-top: 8px;
+    }
+    
+    .risk-badge {
+        display: inline-block;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.9em;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .risk-low {
+        background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        color: white;
+    }
+    
+    .risk-medium {
+        background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        color: white;
+    }
+    
+    .risk-high {
+        background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        color: white;
+    }
+    
+    .risky-list {
+        list-style: none;
+        padding: 0;
+    }
+    
+    .risky-item {
+        background: #fff5f5;
+        border-right: 4px solid #f5576c;
+        padding: 18px;
+        border-radius: 10px;
+        margin-bottom: 12px;
+        transition: all 0.3s ease;
+    }
+    
+    .risky-item:last-child {
+        margin-bottom: 0;
+    }
+    
+    .risky-item:hover {
+        transform: translateX(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+    
+    .risky-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+    
+    .risky-item-date {
+        color: #6b7280;
+        font-size: 0.9em;
+    }
+    
+    .risky-item-category {
+        display: inline-block;
+        padding: 4px 12px;
+        background: #f5576c;
+        color: white;
+        border-radius: 15px;
+        font-size: 0.85em;
+        font-weight: 600;
+    }
+    
+    .risky-item-summary {
+        color: #4b5563;
+        margin-top: 8px;
+    }
+    
+    @media (max-width: 768px) {
+        .report-header h1 {
+            font-size: 1.8em;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .category-list {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="report-wrapper">
+    <a href="/admin/user-reports/" class="back-link">
+        <i class="fas fa-arrow-right"></i> بازگشت به لیست کاربران
+    </a>
+    
+    <div class="report-header">
+        <div class="report-header-content">
+            <div>
+                <h1><i class="fas fa-user"></i> {{ report.employee.name }}</h1>
+                <p>
+                    <i class="fas fa-id-card"></i> {{ report.employee.user_id }}
+                    {% if report.employee.email %}
+                    | <i class="fas fa-envelope"></i> {{ report.employee.email }}
+                    {% endif %}
+                    {% if report.employee.department %}
+                    | <i class="fas fa-building"></i> {{ report.employee.department }}
+                    {% endif %}
+                </p>
+            </div>
+            <div class="period-selector">
+                <a href="?days=7" class="{% if selected_days == 7 %}active{% endif %}">7 روز</a>
+                <a href="?days=30" class="{% if selected_days == 30 %}active{% endif %}">30 روز</a>
+                <a href="?days=90" class="{% if selected_days == 90 %}active{% endif %}">90 روز</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card success">
+            <div class="stat-card-header">
+                <div class="stat-content">
+                    <div class="stat-label">کل تحلیل‌ها</div>
+                    <div class="stat-value">{{ report.statistics.total_analyses }}</div>
+                </div>
+                <div class="stat-icon">
+                    <i class="fas fa-chart-bar"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card warning">
+            <div class="stat-card-header">
+                <div class="stat-content">
+                    <div class="stat-label">تحلیل‌های ریسکی</div>
+                    <div class="stat-value">{{ report.statistics.risky_count }}</div>
+                </div>
+                <div class="stat-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card info">
+            <div class="stat-card-header">
+                <div class="stat-content">
+                    <div class="stat-label">میانگین احساس</div>
+                    <div class="stat-value">{{ report.statistics.avg_sentiment }}</div>
+                </div>
+                <div class="stat-icon">
+                    <i class="fas fa-smile"></i>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card {% if report.risk_analysis.risk_level == 'high' %}danger{% elif report.risk_analysis.risk_level == 'medium' %}warning{% else %}success{% endif %}">
+            <div class="stat-card-header">
+                <div class="stat-content">
+                    <div class="stat-label">سطح ریسک</div>
+                    <div class="stat-value" style="font-size: 1.5em;">
+                        <span class="risk-badge risk-{{ report.risk_analysis.risk_level }}">
+                            {{ report.risk_analysis.risk_level|upper }}
+                        </span>
+                    </div>
+                    <div style="margin-top: 10px; font-size: 0.9em; color: #6b7280;">
+                        {{ report.risk_analysis.risk_percentage }}% ریسک
+                    </div>
+                </div>
+                <div class="stat-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if report.category_breakdown %}
+    <div class="section-card">
+        <div class="section-header">
+            <div class="section-icon">
+                <i class="fas fa-tags"></i>
+            </div>
+            <h2>دسته‌بندی تحلیل‌ها</h2>
+        </div>
+        <div class="category-list">
+            {% for category in report.category_breakdown %}
+            <div class="category-item">
+                <span class="value">{{ category.count }}</span>
+                <span class="label">{{ category.category }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if report.recent_risky_analyses %}
+    <div class="section-card">
+        <div class="section-header">
+            <div class="section-icon">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <h2>تحلیل‌های ریسکی اخیر</h2>
+        </div>
+        <ul class="risky-list">
+            {% for analysis in report.recent_risky_analyses %}
+            <li class="risky-item">
+                <div class="risky-item-header">
+                    <span class="risky-item-date">
+                        <i class="fas fa-clock"></i> {{ analysis.timestamp|date:"Y-m-d H:i" }}
+                    </span>
+                    <span class="risky-item-category">{{ analysis.category }}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                    <span style="color: #f5576c; font-weight: 600;">
+                        <i class="fas fa-heart"></i> احساس: {{ analysis.sentiment_score }}/10
+                    </span>
+                </div>
+                <div class="risky-item-summary">
+                    {{ analysis.summary }}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

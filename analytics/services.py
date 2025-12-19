@@ -3,9 +3,10 @@ import json
 import random
 from django.conf import settings
 from django.db import connections
+from django.db.models import Count, Avg
 from django.utils import timezone
 from datetime import timedelta
-from .models import SourceChat, ChatAnalysis, Employee, Report, ReportType, AnalysisTask, UserGroup
+from .models import SourceChat, ChatAnalysis, Employee, Report, ReportType, AnalysisTask, UserGroup, SourceUser
 from typing import List, Dict, Optional
 import logging
 
@@ -449,3 +450,330 @@ class ReportGenerationService:
 def analyze_text_with_ollama(text):
     service = OllamaService()
     return service.analyze_text(text)
+
+
+class UserSyncService:
+    """
+    سرویس برای سینک کردن کاربران از دیتابیس OpenWebUI با مدل Employee
+    """
+    
+    def __init__(self):
+        self.use_mock = getattr(settings, 'USE_MOCK_DATA', False)
+    
+    def _get_display_name(self, user_obj):
+        """
+        تعیین نام نمایشی برای کاربر بر اساس اولویت:
+        1. name (اگر وجود داشته باشد)
+        2. username (اگر وجود داشته باشد)
+        3. email (بدون @ و دامنه)
+        4. id (شناسه کاربر)
+        """
+        if hasattr(user_obj, 'name') and user_obj.name:
+            return user_obj.name
+        
+        if hasattr(user_obj, 'username') and user_obj.username:
+            return user_obj.username
+        
+        if hasattr(user_obj, 'email') and user_obj.email:
+            # استفاده از بخش قبل از @ در ایمیل
+            email_part = user_obj.email.split('@')[0]
+            return email_part
+        
+        # در نهایت از id استفاده می‌کنیم
+        return user_obj.id if hasattr(user_obj, 'id') else str(user_obj)
+    
+    def get_source_users(self):
+        """
+        دریافت لیست کاربران از دیتابیس OpenWebUI
+        در صورت نبودن نام، از username یا email استفاده می‌کند
+        """
+        if self.use_mock:
+            # داده‌های mock برای تست - شامل حالات مختلف
+            return [
+                {'id': 'user_1', 'name': 'علی احمدی', 'username': 'ali_ahmadi', 'email': 'ali@example.com', 'is_active': True},
+                {'id': 'user_2', 'name': None, 'username': 'maryam_rezaei', 'email': 'maryam@example.com', 'is_active': True},
+                {'id': 'user_3', 'name': None, 'username': None, 'email': 'hossein@example.com', 'is_active': True},
+                {'id': 'user_4', 'name': None, 'username': None, 'email': None, 'is_active': True},  # فقط id
+                {'id': 'user_5', 'name': 'رضا نوری', 'username': 'reza_nouri', 'email': 'reza@example.com', 'is_active': True},
+            ]
+        
+        try:
+            # تلاش برای خواندن از دیتابیس OpenWebUI
+            source_users = SourceUser.objects.using('openwebui_db').filter(is_active=True)
+            users_list = []
+            for user in source_users:
+                display_name = self._get_display_name(user)
+                users_list.append({
+                    'id': user.id,
+                    'name': display_name,
+                    'username': getattr(user, 'username', None) or '',
+                    'email': user.email or '',
+                    'is_active': user.is_active if user.is_active is not None else True
+                })
+            return users_list
+        except Exception as e:
+            logger.error(f"خطا در دریافت کاربران از OpenWebUI: {e}")
+            # اگر جدول user وجود نداشت، از جدول chat کاربران را استخراج می‌کنیم
+            try:
+                chats = SourceChat.objects.using('openwebui_db').values('user_id').distinct()
+                users_list = []
+                for chat in chats:
+                    users_list.append({
+                        'id': chat['user_id'],
+                        'name': chat['user_id'],  # در این حالت فقط id داریم
+                        'username': '',
+                        'email': '',
+                        'is_active': True
+                    })
+                return users_list
+            except Exception as e2:
+                logger.error(f"خطا در استخراج کاربران از چت‌ها: {e2}")
+                return []
+    
+    def sync_users(self, deactivate_missing=True, delete_missing=False):
+        """
+        سینک کردن کاربران از دیتابیس OpenWebUI با Employee
+        
+        Args:
+            deactivate_missing: اگر True باشد، کاربرانی که در OpenWebUI نیستند را غیرفعال می‌کند
+            delete_missing: اگر True باشد، کاربرانی که در OpenWebUI نیستند را حذف می‌کند
+                           (این گزینه فقط در صورتی اعمال می‌شود که deactivate_missing=False باشد)
+        
+        Returns:
+            dict: نتیجه سینک شامل تعداد کاربران اضافه شده، به‌روزرسانی شده و حذف/غیرفعال شده
+        """
+        result = {
+            'added': 0,
+            'updated': 0,
+            'deactivated': 0,
+            'deleted': 0,
+            'errors': []
+        }
+        
+        try:
+            # دریافت کاربران از دیتابیس منبع
+            source_users = self.get_source_users()
+            source_user_ids = {user['id'] for user in source_users}
+            
+            # دریافت کاربران فعلی
+            existing_employees = Employee.objects.all()
+            existing_user_ids = {emp.user_id for emp in existing_employees}
+            
+            # اضافه کردن یا به‌روزرسانی کاربران جدید
+            for source_user in source_users:
+                try:
+                    # تعیین نام نمایشی بر اساس اولویت
+                    display_name = (
+                        source_user.get('name') or 
+                        source_user.get('username') or 
+                        (source_user.get('email', '').split('@')[0] if source_user.get('email') else '') or
+                        source_user['id']
+                    )
+                    
+                    employee, created = Employee.objects.get_or_create(
+                        user_id=source_user['id'],
+                        defaults={
+                            'name': display_name,
+                            'email': source_user.get('email') or None,
+                            'is_active': source_user.get('is_active', True)
+                        }
+                    )
+                    
+                    if created:
+                        result['added'] += 1
+                        logger.info(f"کاربر جدید اضافه شد: {employee.name} ({employee.user_id})")
+                    else:
+                        # به‌روزرسانی اطلاعات موجود
+                        updated = False
+                        if employee.name != display_name:
+                            employee.name = display_name
+                            updated = True
+                        if employee.email != (source_user.get('email') or None):
+                            employee.email = source_user.get('email') or None
+                            updated = True
+                        if employee.is_active != source_user.get('is_active', True):
+                            employee.is_active = source_user.get('is_active', True)
+                            updated = True
+                        
+                        if updated:
+                            employee.save()
+                            result['updated'] += 1
+                            logger.info(f"کاربر به‌روزرسانی شد: {employee.name} ({employee.user_id})")
+                except Exception as e:
+                    error_msg = f"خطا در پردازش کاربر {source_user.get('id', 'unknown')}: {str(e)}"
+                    result['errors'].append(error_msg)
+                    logger.error(error_msg)
+            
+            # مدیریت کاربرانی که در دیتابیس منبع نیستند
+            missing_user_ids = existing_user_ids - source_user_ids
+            
+            if delete_missing and not deactivate_missing:
+                # حذف کاربران
+                deleted_count = Employee.objects.filter(user_id__in=missing_user_ids).delete()[0]
+                result['deleted'] = deleted_count
+                logger.info(f"{deleted_count} کاربر حذف شد")
+            elif deactivate_missing:
+                # غیرفعال کردن کاربران
+                deactivated_count = Employee.objects.filter(
+                    user_id__in=missing_user_ids,
+                    is_active=True
+                ).update(is_active=False)
+                result['deactivated'] = deactivated_count
+                logger.info(f"{deactivated_count} کاربر غیرفعال شد")
+            
+        except Exception as e:
+            error_msg = f"خطا در فرایند سینک: {str(e)}"
+            result['errors'].append(error_msg)
+            logger.error(error_msg)
+        
+        return result
+    
+    def get_sync_summary(self):
+        """
+        دریافت خلاصه وضعیت سینک
+        """
+        try:
+            source_users = self.get_source_users()
+            source_user_ids = {user['id'] for user in source_users}
+            
+            existing_employees = Employee.objects.all()
+            existing_user_ids = {emp.user_id for emp in existing_employees}
+            
+            new_users = source_user_ids - existing_user_ids
+            missing_users = existing_user_ids - source_user_ids
+            synced_users = source_user_ids & existing_user_ids
+            
+            return {
+                'source_count': len(source_users),
+                'local_count': existing_employees.count(),
+                'new_users_count': len(new_users),
+                'missing_users_count': len(missing_users),
+                'synced_users_count': len(synced_users),
+                'new_users': list(new_users),
+                'missing_users': list(missing_users)
+            }
+        except Exception as e:
+            logger.error(f"خطا در دریافت خلاصه سینک: {e}")
+            return {
+                'source_count': 0,
+                'local_count': 0,
+                'new_users_count': 0,
+                'missing_users_count': 0,
+                'synced_users_count': 0,
+                'new_users': [],
+                'missing_users': []
+            }
+
+
+class UserReportService:
+    
+    def __init__(self):
+        self.openwebui = OpenWebUIService()
+        self.ollama = OllamaService()
+    
+    def generate_user_report(self, user_id, start_date=None, end_date=None):
+        if not start_date:
+            start_date = timezone.now() - timedelta(days=30)
+        if not end_date:
+            end_date = timezone.now()
+        
+        employee = Employee.objects.filter(user_id=user_id).first()
+        if not employee:
+            return None
+        
+        chats = self.openwebui.get_chats(
+            user_ids=[user_id],
+            start_date=start_date,
+            end_date=end_date
+        )
+        
+        analyses = ChatAnalysis.objects.filter(
+            user_id=user_id,
+            timestamp__gte=start_date,
+            timestamp__lte=end_date
+        )
+        
+        total_chats = len(chats)
+        total_analyses = analyses.count()
+        risky_count = analyses.filter(is_risky=True).count()
+        
+        avg_sentiment = analyses.aggregate(avg=Avg('sentiment_score'))['avg'] or 0
+        
+        category_breakdown = analyses.values('category').annotate(
+            count=Count('id')
+        ).order_by('-count')
+        
+        sentiment_trend = []
+        daily_analyses = analyses.extra(
+            select={'day': 'date(timestamp)'}
+        ).values('day').annotate(
+            count=Count('id'),
+            avg_sentiment=Avg('sentiment_score')
+        ).order_by('day')
+        
+        for day_data in daily_analyses:
+            sentiment_trend.append({
+                'date': day_data['day'],
+                'count': day_data['count'],
+                'avg_sentiment': round(day_data['avg_sentiment'], 2)
+            })
+        
+        risk_analysis = {
+            'total_risky': risky_count,
+            'risk_percentage': round((risky_count / total_analyses * 100) if total_analyses > 0 else 0, 2),
+            'risk_level': 'high' if risky_count > total_analyses * 0.3 else 'medium' if risky_count > total_analyses * 0.1 else 'low'
+        }
+        
+        recent_risky = analyses.filter(is_risky=True).order_by('-timestamp')[:5]
+        
+        return {
+            'employee': {
+                'id': employee.id,
+                'name': employee.name,
+                'user_id': employee.user_id,
+                'email': employee.email,
+                'department': employee.department
+            },
+            'period': {
+                'start_date': start_date,
+                'end_date': end_date,
+                'days': (end_date - start_date).days
+            },
+            'statistics': {
+                'total_chats': total_chats,
+                'total_analyses': total_analyses,
+                'risky_count': risky_count,
+                'avg_sentiment': round(avg_sentiment, 2),
+                'risk_level': risk_analysis['risk_level']
+            },
+            'category_breakdown': list(category_breakdown),
+            'sentiment_trend': sentiment_trend,
+            'risk_analysis': risk_analysis,
+            'recent_risky_analyses': [
+                {
+                    'timestamp': a.timestamp,
+                    'category': a.category,
+                    'sentiment_score': a.sentiment_score,
+                    'summary': a.summary
+                }
+                for a in recent_risky
+            ]
+        }
+    
+    def get_user_activity_summary(self, user_id, days=7):
+        end_date = timezone.now()
+        start_date = end_date - timedelta(days=days)
+        
+        analyses = ChatAnalysis.objects.filter(
+            user_id=user_id,
+            timestamp__gte=start_date
+        )
+        
+        return {
+            'total_analyses': analyses.count(),
+            'risky_count': analyses.filter(is_risky=True).count(),
+            'avg_sentiment': round(analyses.aggregate(avg=Avg('sentiment_score'))['avg'] or 0, 2),
+            'most_common_category': analyses.values('category').annotate(
+                count=Count('id')
+            ).order_by('-count').first()
+        }

@@ -1,0 +1,106 @@
+{% extends "admin/base_site.html" %}
+{% load i18n admin_urls static admin_modify %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    .sync-summary {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+    }
+    .sync-summary h3 {
+        margin-top: 0;
+        color: #495057;
+    }
+    .summary-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid #e9ecef;
+    }
+    .summary-item:last-child {
+        border-bottom: none;
+    }
+    .summary-label {
+        font-weight: 600;
+        color: #6c757d;
+    }
+    .summary-value {
+        color: #212529;
+    }
+    .warning-box {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 20px 0;
+        color: #856404;
+    }
+    .warning-box strong {
+        display: block;
+        margin-bottom: 10px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<h1>تأیید سینک و حذف کاربران</h1>
+
+<div class="warning-box">
+    <strong>⚠️ هشدار:</strong>
+    این عملیات کاربرانی که در دیتابیس OpenWebUI وجود ندارند را <strong>حذف خواهد کرد</strong>.
+    لطفاً قبل از ادامه، خلاصه زیر را بررسی کنید.
+</div>
+
+<div class="sync-summary">
+    <h3>خلاصه وضعیت سینک</h3>
+    <div class="summary-item">
+        <span class="summary-label">تعداد کاربران در دیتابیس منبع:</span>
+        <span class="summary-value">{{ summary.source_count }}</span>
+    </div>
+    <div class="summary-item">
+        <span class="summary-label">تعداد کاربران در سیستم محلی:</span>
+        <span class="summary-value">{{ summary.local_count }}</span>
+    </div>
+    <div class="summary-item">
+        <span class="summary-label">کاربران جدید (اضافه می‌شوند):</span>
+        <span class="summary-value" style="color: #28a745;">{{ summary.new_users_count }}</span>
+    </div>
+    <div class="summary-item">
+        <span class="summary-label">کاربران حذف شده (حذف می‌شوند):</span>
+        <span class="summary-value" style="color: #dc3545;">{{ summary.missing_users_count }}</span>
+    </div>
+    <div class="summary-item">
+        <span class="summary-label">کاربران همگام شده:</span>
+        <span class="summary-value" style="color: #17a2b8;">{{ summary.synced_users_count }}</span>
+    </div>
+</div>
+
+{% if summary.missing_users %}
+<div style="margin: 20px 0;">
+    <h4>کاربرانی که حذف خواهند شد:</h4>
+    <ul>
+        {% for user_id in summary.missing_users %}
+        <li>{{ user_id }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    {% for obj in queryset %}
+    <input type="hidden" name="{{ action_checkbox_name }}" value="{{ obj.pk }}" />
+    {% endfor %}
+    <input type="hidden" name="action" value="sync_users_delete_action" />
+    <input type="hidden" name="confirm" value="1" />
+    
+    <div style="margin-top: 30px;">
+        <input type="submit" value="تأیید و ادامه" class="default" style="background: #dc3545; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; font-weight: 600;" />
+        <a href="{% url 'admin:analytics_employee_changelist' %}" style="margin-right: 10px; padding: 10px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 5px; display: inline-block;">انصراف</a>
+    </div>
+</form>
+{% endblock %}

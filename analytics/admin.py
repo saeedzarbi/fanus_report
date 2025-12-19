@@ -9,7 +9,10 @@ from .models import (
     Employee, UserGroup, AnalysisTask, ChatAnalysis, 
     ReportType, Report, ReportSchedule
 )
-from .services import ReportGenerationService
+from .services import ReportGenerationService, UserSyncService
+
+# پیام‌های ثابت
+ALL_USERS_UP_TO_DATE_MSG = "همه کاربران به‌روز هستند."
 
 @admin.register(Employee)
 class EmployeeAdmin(admin.ModelAdmin):
@@ -17,6 +20,160 @@ class EmployeeAdmin(admin.ModelAdmin):
     list_filter = ('is_active', 'department', 'created_at')
     search_fields = ('name', 'user_id', 'email')
     ordering = ('name',)
+    actions = ['show_sync_summary_action', 'sync_users_action', 'sync_users_deactivate_action', 'sync_users_delete_action']
+    
+    def show_sync_summary_action(self, request, queryset):
+        """
+        نمایش خلاصه وضعیت سینک
+        """
+        sync_service = UserSyncService()
+        summary = sync_service.get_sync_summary()
+        
+        message_parts = [
+            f"کاربران در دیتابیس منبع: {summary['source_count']}",
+            f"کاربران در سیستم محلی: {summary['local_count']}",
+            f"کاربران جدید: {summary['new_users_count']}",
+            f"کاربران حذف شده: {summary['missing_users_count']}",
+            f"کاربران همگام شده: {summary['synced_users_count']}"
+        ]
+        
+        if summary['new_users']:
+            message_parts.append(f"\nکاربران جدید: {', '.join(summary['new_users'][:10])}")
+            if len(summary['new_users']) > 10:
+                message_parts.append(f"... و {len(summary['new_users']) - 10} کاربر دیگر")
+        
+        if summary['missing_users']:
+            message_parts.append(f"\nکاربران حذف شده: {', '.join(summary['missing_users'][:10])}")
+            if len(summary['missing_users']) > 10:
+                message_parts.append(f"... و {len(summary['missing_users']) - 10} کاربر دیگر")
+        
+        self.message_user(
+            request,
+            "\n".join(message_parts),
+            messages.INFO
+        )
+    
+    show_sync_summary_action.short_description = "📊 نمایش خلاصه وضعیت سینک"
+    
+    def sync_users_action(self, request, queryset):
+        """
+        سینک کاربران از دیتابیس OpenWebUI (فقط اضافه و به‌روزرسانی)
+        """
+        sync_service = UserSyncService()
+        result = sync_service.sync_users(deactivate_missing=False, delete_missing=False)
+        
+        message_parts = []
+        if result['added'] > 0:
+            message_parts.append(f"{result['added']} کاربر جدید اضافه شد")
+        if result['updated'] > 0:
+            message_parts.append(f"{result['updated']} کاربر به‌روزرسانی شد")
+        if result['errors']:
+            message_parts.append(f"{len(result['errors'])} خطا رخ داد")
+        
+        if message_parts:
+            self.message_user(
+                request,
+                " | ".join(message_parts),
+                messages.SUCCESS if not result['errors'] else messages.WARNING
+            )
+        else:
+            self.message_user(
+                request,
+                ALL_USERS_UP_TO_DATE_MSG,
+                messages.INFO
+            )
+    
+    sync_users_action.short_description = "🔄 سینک کاربران (اضافه و به‌روزرسانی)"
+    
+    def sync_users_deactivate_action(self, request, queryset):
+        """
+        سینک کاربران و غیرفعال کردن کاربرانی که در OpenWebUI نیستند
+        """
+        sync_service = UserSyncService()
+        result = sync_service.sync_users(deactivate_missing=True, delete_missing=False)
+        
+        message_parts = []
+        if result['added'] > 0:
+            message_parts.append(f"{result['added']} کاربر جدید اضافه شد")
+        if result['updated'] > 0:
+            message_parts.append(f"{result['updated']} کاربر به‌روزرسانی شد")
+        if result['deactivated'] > 0:
+            message_parts.append(f"{result['deactivated']} کاربر غیرفعال شد")
+        if result['errors']:
+            message_parts.append(f"{len(result['errors'])} خطا رخ داد")
+        
+        if message_parts:
+            self.message_user(
+                request,
+                " | ".join(message_parts),
+                messages.SUCCESS if not result['errors'] else messages.WARNING
+            )
+        else:
+            self.message_user(
+                request,
+                ALL_USERS_UP_TO_DATE_MSG,
+                messages.INFO
+            )
+    
+    sync_users_deactivate_action.short_description = "🔄 سینک کاربران (با غیرفعال کردن کاربران حذف شده)"
+    
+    def sync_users_delete_action(self, request, queryset):
+        """
+        سینک کاربران و حذف کاربرانی که در OpenWebUI نیستند
+        """
+        from django.contrib.admin import helpers
+        from django.template.response import TemplateResponse
+        
+        # درخواست تأیید از کاربر
+        if request.POST.get('confirm'):
+            sync_service = UserSyncService()
+            result = sync_service.sync_users(deactivate_missing=False, delete_missing=True)
+            
+            message_parts = []
+            if result['added'] > 0:
+                message_parts.append(f"{result['added']} کاربر جدید اضافه شد")
+            if result['updated'] > 0:
+                message_parts.append(f"{result['updated']} کاربر به‌روزرسانی شد")
+            if result['deleted'] > 0:
+                message_parts.append(f"{result['deleted']} کاربر حذف شد")
+            if result['errors']:
+                message_parts.append(f"{len(result['errors'])} خطا رخ داد")
+            
+            if message_parts:
+                self.message_user(
+                    request,
+                    " | ".join(message_parts),
+                    messages.SUCCESS if not result['errors'] else messages.WARNING
+                )
+            else:
+                self.message_user(
+                    request,
+                    "همه کاربران به‌روز هستند.",
+                    messages.INFO
+                )
+            return
+        
+        # نمایش صفحه تأیید
+        sync_service = UserSyncService()
+        summary = sync_service.get_sync_summary()
+        
+        context = {
+            **self.admin_site.each_context(request),
+            'title': 'تأیید حذف کاربران',
+            'objects_name': 'کاربران',
+            'queryset': queryset,
+            'opts': self.model._meta,
+            'action_checkbox_name': helpers.ACTION_CHECKBOX_NAME,
+            'summary': summary,
+        }
+        
+        return TemplateResponse(
+            request,
+            'admin/analytics/employee/confirm_sync_delete.html',
+            context
+        )
+    
+    sync_users_delete_action.short_description = "🗑️ سینک کاربران (با حذف کاربران حذف شده)"
 
 @admin.register(UserGroup)
 class UserGroupAdmin(admin.ModelAdmin):

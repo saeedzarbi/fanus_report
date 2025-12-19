@@ -13,6 +13,27 @@ class SourceChat(models.Model):
         db_table = 'chat'  
         app_label = 'analytics'
 
+class SourceUser(models.Model):
+    """
+    مدل برای دسترسی به جدول کاربران در دیتابیس OpenWebUI
+    این مدل managed=False است و فقط برای خواندن داده‌ها استفاده می‌شود
+    
+    توجه: در دیتابیس OpenWebUI ممکن است کاربران نام نداشته باشند
+    و فقط شناسه، نام کاربری (username) یا ایمیل داشته باشند
+    """
+    id = models.CharField(max_length=255, primary_key=True)
+    name = models.CharField(max_length=255, blank=True, null=True, verbose_name="نام")
+    username = models.CharField(max_length=255, blank=True, null=True, verbose_name="نام کاربری")
+    email = models.EmailField(blank=True, null=True, verbose_name="ایمیل")
+    created_at = models.DateTimeField(blank=True, null=True)
+    updated_at = models.DateTimeField(blank=True, null=True)
+    is_active = models.BooleanField(default=True, blank=True, null=True)
+    
+    class Meta:
+        managed = False
+        db_table = 'user'  # یا 'users' بسته به ساختار دیتابیس OpenWebUI
+        app_label = 'analytics'
+
 class Employee(models.Model):
     user_id = models.CharField(max_length=255, unique=True, verbose_name="شناسه کاربر")
     name = models.CharField(max_length=255, verbose_name="نام")
