@@ -499,7 +499,27 @@ class UserSyncService:
         
         try:
             # تلاش برای خواندن از دیتابیس OpenWebUI
-            source_users = SourceUser.objects.using('openwebui_db').filter(is_active=True)
+            # ابتدا بررسی می‌کنیم که آیا ستون is_active وجود دارد
+            from django.db import connections
+            db_conn = connections['openwebui_db']
+            cursor = db_conn.cursor()
+            
+            # بررسی وجود ستون is_active
+            table_name = SourceUser._meta.db_table
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = %s AND column_name = 'is_active'
+            """, [table_name])
+            
+            has_is_active = cursor.fetchone() is not None
+            
+            # خواندن کاربران - اگر is_active وجود دارد فیلتر می‌کنیم
+            if has_is_active:
+                source_users = SourceUser.objects.using('openwebui_db').filter(is_active=True)
+            else:
+                source_users = SourceUser.objects.using('openwebui_db').all()
+            
             users_list = []
             for user in source_users:
                 display_name = self._get_display_name(user)
@@ -507,8 +527,8 @@ class UserSyncService:
                     'id': user.id,
                     'name': display_name,
                     'username': getattr(user, 'username', None) or '',
-                    'email': user.email or '',
-                    'is_active': user.is_active if user.is_active is not None else True
+                    'email': getattr(user, 'email', None) or '',
+                    'is_active': getattr(user, 'is_active', True) if hasattr(user, 'is_active') and user.is_active is not None else True
                 })
             return users_list
         except Exception as e:

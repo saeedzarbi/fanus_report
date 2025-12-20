@@ -20,7 +20,23 @@ class EmployeeAdmin(admin.ModelAdmin):
     list_filter = ('is_active', 'department', 'created_at')
     search_fields = ('name', 'user_id', 'email')
     ordering = ('name',)
-    actions = ['show_sync_summary_action', 'sync_users_action', 'sync_users_deactivate_action', 'sync_users_delete_action']
+    actions = [
+        'show_sync_summary_action', 
+        'sync_users_action', 
+        'sync_users_deactivate_action', 
+        'sync_users_delete_action'
+    ]
+    
+    def changelist_view(self, request, extra_context=None):
+        """افزودن دکمه‌های سینک در بالای لیست"""
+        extra_context = extra_context or {}
+        
+        # اضافه کردن اطلاعات سینک به context
+        sync_service = UserSyncService()
+        summary = sync_service.get_sync_summary()
+        extra_context['sync_summary'] = summary
+        
+        return super().changelist_view(request, extra_context)
     
     def show_sync_summary_action(self, request, queryset):
         """
@@ -58,7 +74,12 @@ class EmployeeAdmin(admin.ModelAdmin):
     def sync_users_action(self, request, queryset):
         """
         سینک کاربران از دیتابیس OpenWebUI (فقط اضافه و به‌روزرسانی)
+        اگر queryset خالی باشد، همه کاربران را سینک می‌کند
         """
+        # اگر هیچ کاربری انتخاب نشده، همه را سینک کن
+        if not queryset.exists():
+            queryset = Employee.objects.all()
+        
         sync_service = UserSyncService()
         result = sync_service.sync_users(deactivate_missing=False, delete_missing=False)
         
@@ -88,6 +109,7 @@ class EmployeeAdmin(admin.ModelAdmin):
     def sync_users_deactivate_action(self, request, queryset):
         """
         سینک کاربران و غیرفعال کردن کاربرانی که در OpenWebUI نیستند
+        همیشه همه کاربران را سینک می‌کند (queryset نادیده گرفته می‌شود)
         """
         sync_service = UserSyncService()
         result = sync_service.sync_users(deactivate_missing=True, delete_missing=False)
@@ -120,6 +142,7 @@ class EmployeeAdmin(admin.ModelAdmin):
     def sync_users_delete_action(self, request, queryset):
         """
         سینک کاربران و حذف کاربرانی که در OpenWebUI نیستند
+        همیشه همه کاربران را سینک می‌کند (queryset نادیده گرفته می‌شود)
         """
         from django.contrib.admin import helpers
         from django.template.response import TemplateResponse

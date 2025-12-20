@@ -3,6 +3,7 @@ from django.db import connections
 from django.db.utils import OperationalError, DatabaseError
 from analytics.models import SourceUser
 from django.conf import settings
+from analytics.services import UserSyncService
 
 
 class Command(BaseCommand):
@@ -27,11 +28,29 @@ class Command(BaseCommand):
             default='table',
             help='فرمت خروجی (table, json, csv)'
         )
+        parser.add_argument(
+            '--sync',
+            action='store_true',
+            help='سینک کاربران استخراج شده به دیتابیس محلی (Employee)'
+        )
+        parser.add_argument(
+            '--sync-deactivate',
+            action='store_true',
+            help='سینک کاربران و غیرفعال کردن کاربرانی که در OpenWebUI نیستند'
+        )
+        parser.add_argument(
+            '--sync-delete',
+            action='store_true',
+            help='سینک کاربران و حذف کاربرانی که در OpenWebUI نیستند (خطرناک!)'
+        )
 
     def handle(self, *args, **options):
         limit = options['limit']
         active_only = options.get('active_only', False)
         output_format = options['format']
+        sync = options.get('sync', False)
+        sync_deactivate = options.get('sync_deactivate', False)
+        sync_delete = options.get('sync_delete', False)
 
         self.stdout.write("🔍 در حال اتصال به دیتابیس OpenWebUI...")
 
@@ -145,6 +164,77 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.WARNING('   ⚠️  اطلاعات وضعیت فعال/غیرفعال در دسترس نیست')
                 )
+
+            # انجام سینک اگر درخواست شده باشد
+            if sync or sync_deactivate or sync_delete:
+                self.stdout.write("\n" + "="*80)
+                self.stdout.write("🔄 شروع فرآیند سینک کاربران...")
+                
+                try:
+                    sync_service = UserSyncService()
+                    
+                    # تعیین نوع سینک
+                    if sync_delete:
+                        self.stdout.write(
+                            self.style.WARNING(
+                                "⚠️  هشدار: این عملیات کاربرانی که در OpenWebUI نیستند را حذف می‌کند!"
+                            )
+                        )
+                        deactivate_missing = False
+                        delete_missing = True
+                    elif sync_deactivate:
+                        deactivate_missing = True
+                        delete_missing = False
+                    else:
+                        deactivate_missing = False
+                        delete_missing = False
+                    
+                    # انجام سینک
+                    result = sync_service.sync_users(
+                        deactivate_missing=deactivate_missing,
+                        delete_missing=delete_missing
+                    )
+                    
+                    # نمایش نتایج
+                    self.stdout.write("\n📊 نتایج سینک:")
+                    if result['added'] > 0:
+                        self.stdout.write(
+                            self.style.SUCCESS(f"   ✅ {result['added']} کاربر جدید اضافه شد")
+                        )
+                    if result['updated'] > 0:
+                        self.stdout.write(
+                            self.style.SUCCESS(f"   🔄 {result['updated']} کاربر به‌روزرسانی شد")
+                        )
+                    if result.get('deactivated', 0) > 0:
+                        self.stdout.write(
+                            self.style.WARNING(f"   ⏸️  {result['deactivated']} کاربر غیرفعال شد")
+                        )
+                    if result.get('deleted', 0) > 0:
+                        self.stdout.write(
+                            self.style.ERROR(f"   🗑️  {result['deleted']} کاربر حذف شد")
+                        )
+                    if result['errors']:
+                        self.stdout.write(
+                            self.style.ERROR(f"   ⚠️  {len(result['errors'])} خطا رخ داد:")
+                        )
+                        for error in result['errors'][:5]:  # نمایش حداکثر 5 خطا
+                            self.stdout.write(f"      - {error}")
+                        if len(result['errors']) > 5:
+                            self.stdout.write(f"      ... و {len(result['errors']) - 5} خطای دیگر")
+                    
+                    if (result['added'] == 0 and result['updated'] == 0 and 
+                        result.get('deactivated', 0) == 0 and result.get('deleted', 0) == 0 and 
+                        not result['errors']):
+                        self.stdout.write(
+                            self.style.SUCCESS("   ✅ همه کاربران به‌روز هستند!")
+                        )
+                    
+                    self.stdout.write(self.style.SUCCESS("\n✅ فرآیند سینک با موفقیت انجام شد!"))
+                    
+                except Exception as sync_error:
+                    self.stdout.write(
+                        self.style.ERROR(f"❌ خطا در فرآیند سینک: {sync_error}")
+                    )
 
         except OperationalError as e:
             self.stdout.write(
