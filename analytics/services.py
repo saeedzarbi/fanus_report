@@ -502,34 +502,75 @@ class UserSyncService:
             # ابتدا بررسی می‌کنیم که آیا ستون is_active وجود دارد
             from django.db import connections
             db_conn = connections['openwebui_db']
-            cursor = db_conn.cursor()
+            has_is_active = False
             
-            # بررسی وجود ستون is_active
+            try:
+                cursor = db_conn.cursor()
+                # بررسی وجود ستون is_active
+                table_name = SourceUser._meta.db_table
+                cursor.execute("""
+                    SELECT column_name 
+                    FROM information_schema.columns 
+                    WHERE table_name = %s AND column_name = 'is_active'
+                """, [table_name])
+                has_is_active = cursor.fetchone() is not None
+            except Exception as check_error:
+                logger.warning(f"خطا در بررسی ستون is_active: {check_error}. فرض می‌کنیم که وجود ندارد.")
+                has_is_active = False
+            
+            # خواندن کاربران با raw SQL برای اطمینان از خواندن فقط ستون‌های موجود
             table_name = SourceUser._meta.db_table
+            
+            # ساخت لیست ستون‌های موجود
             cursor.execute("""
                 SELECT column_name 
                 FROM information_schema.columns 
-                WHERE table_name = %s AND column_name = 'is_active'
+                WHERE table_name = %s
+                ORDER BY ordinal_position
             """, [table_name])
             
-            has_is_active = cursor.fetchone() is not None
+            available_columns = [row[0] for row in cursor.fetchall()]
             
-            # خواندن کاربران - اگر is_active وجود دارد فیلتر می‌کنیم
-            if has_is_active:
-                source_users = SourceUser.objects.using('openwebui_db').filter(is_active=True)
-            else:
-                source_users = SourceUser.objects.using('openwebui_db').all()
+            # تعیین ستون‌های مورد نیاز
+            needed_columns = ['id', 'name', 'username', 'email']
+            if 'created_at' in available_columns:
+                needed_columns.append('created_at')
+            if 'updated_at' in available_columns:
+                needed_columns.append('updated_at')
             
+            # فیلتر کردن ستون‌های مورد نیاز که واقعاً وجود دارند
+            columns_to_select = [col for col in needed_columns if col in available_columns]
+            
+            # ساخت کوئری SQL
+            columns_str = ', '.join([f'"{col}"' for col in columns_to_select])
+            where_clause = 'WHERE "is_active" = true' if has_is_active and 'is_active' in available_columns else ''
+            
+            sql_query = f'SELECT {columns_str} FROM "{table_name}" {where_clause}'
+            
+            cursor.execute(sql_query)
+            rows = cursor.fetchall()
+            
+            # تبدیل نتایج به لیست دیکشنری
             users_list = []
-            for user in source_users:
-                display_name = self._get_display_name(user)
+            for row in rows:
+                user_dict = dict(zip(columns_to_select, row))
+                
+                # تعیین نام نمایشی
+                display_name = (
+                    user_dict.get('name') or 
+                    user_dict.get('username') or 
+                    (user_dict.get('email', '').split('@')[0] if user_dict.get('email') else '') or
+                    user_dict.get('id', '')
+                )
+                
                 users_list.append({
-                    'id': user.id,
+                    'id': str(user_dict.get('id', '')),
                     'name': display_name,
-                    'username': getattr(user, 'username', None) or '',
-                    'email': getattr(user, 'email', None) or '',
-                    'is_active': getattr(user, 'is_active', True) if hasattr(user, 'is_active') and user.is_active is not None else True
+                    'username': user_dict.get('username', '') or '',
+                    'email': user_dict.get('email', '') or '',
+                    'is_active': user_dict.get('is_active', True) if 'is_active' in user_dict else True
                 })
+            
             return users_list
         except Exception as e:
             logger.error(f"خطا در دریافت کاربران از OpenWebUI: {e}")

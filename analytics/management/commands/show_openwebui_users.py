@@ -99,36 +99,59 @@ class Command(BaseCommand):
                 )
             )
 
-            # استخراج کاربران
+            # استخراج کاربران با raw SQL برای اطمینان از خواندن فقط ستون‌های موجود
             self.stdout.write("📊 در حال استخراج کاربران...")
             
-            # ساخت کوئری با فقط ستون‌های موجود
-            if has_is_active and has_created_at:
-                users_query = SourceUser.objects.using('openwebui_db').only(
-                    'id', 'name', 'username', 'email', 'is_active', 'created_at', 'updated_at'
-                )
-            elif has_created_at:
-                users_query = SourceUser.objects.using('openwebui_db').only(
-                    'id', 'name', 'username', 'email', 'created_at', 'updated_at'
-                )
-            else:
-                users_query = SourceUser.objects.using('openwebui_db').only(
-                    'id', 'name', 'username', 'email'
-                )
+            # تعیین ستون‌های مورد نیاز
+            needed_columns = ['id', 'name', 'username', 'email']
+            if 'created_at' in available_columns:
+                needed_columns.append('created_at')
+            if 'updated_at' in available_columns:
+                needed_columns.append('updated_at')
+            if has_is_active:
+                needed_columns.append('is_active')
             
-            # فقط اگر ستون is_active وجود دارد، فیلتر کن
+            # فیلتر کردن ستون‌های مورد نیاز که واقعاً وجود دارند
+            columns_to_select = [col for col in needed_columns if col in available_columns]
+            
+            # ساخت کوئری SQL
+            columns_str = ', '.join([f'"{col}"' for col in columns_to_select])
+            where_clause = ''
+            order_clause = ''
+            
+            # اضافه کردن فیلتر is_active اگر درخواست شده و ستون وجود دارد
             if active_only and has_is_active:
-                users_query = users_query.filter(is_active=True)
+                where_clause = 'WHERE "is_active" = true'
             elif active_only:
                 self.stdout.write(
                     self.style.WARNING('⚠️  ستون is_active وجود ندارد. نمایش همه کاربران...')
                 )
             
-            # مرتب‌سازی - اگر created_at وجود دارد استفاده کن
-            if has_created_at:
-                users = list(users_query.order_by('-created_at')[:limit])
-            else:
-                users = list(users_query[:limit])
+            # اضافه کردن مرتب‌سازی اگر created_at وجود دارد
+            if has_created_at and 'created_at' in columns_to_select:
+                order_clause = 'ORDER BY "created_at" DESC'
+            
+            # ساخت کوئری نهایی
+            sql_query = f'SELECT {columns_str} FROM "{table_name}" {where_clause} {order_clause} LIMIT {limit}'
+            
+            cursor.execute(sql_query)
+            rows = cursor.fetchall()
+            
+            # تبدیل نتایج به لیست اشیاء mock برای سازگاری با کد نمایش
+            users = []
+            for row in rows:
+                user_dict = dict(zip(columns_to_select, row))
+                # ساخت یک شیء mock که مانند SourceUser رفتار می‌کند
+                user_obj = type('User', (), {
+                    'id': str(user_dict.get('id', '')),
+                    'name': user_dict.get('name'),
+                    'username': user_dict.get('username'),
+                    'email': user_dict.get('email'),
+                    'created_at': user_dict.get('created_at'),
+                    'updated_at': user_dict.get('updated_at'),
+                    'is_active': user_dict.get('is_active', True) if has_is_active else True,
+                })()
+                users.append(user_obj)
 
             if not users:
                 self.stdout.write(self.style.WARNING('⚠️  هیچ کاربری یافت نشد!'))
@@ -146,8 +169,9 @@ class Command(BaseCommand):
             elif output_format == 'csv':
                 self.display_csv(users, has_is_active)
 
-            # آمار کلی
-            total_count = SourceUser.objects.using('openwebui_db').count()
+            # آمار کلی با raw SQL
+            cursor.execute(f'SELECT COUNT(*) FROM "{table_name}"')
+            total_count = cursor.fetchone()[0]
             
             self.stdout.write("\n" + "="*80)
             self.stdout.write(f"📈 آمار کلی:")
@@ -155,9 +179,8 @@ class Command(BaseCommand):
             
             # فقط اگر ستون is_active وجود دارد، آمار فعال/غیرفعال را نمایش بده
             if has_is_active:
-                active_count = SourceUser.objects.using('openwebui_db').filter(
-                    is_active=True
-                ).count()
+                cursor.execute(f'SELECT COUNT(*) FROM "{table_name}" WHERE "is_active" = true')
+                active_count = cursor.fetchone()[0]
                 self.stdout.write(f"   کاربران فعال: {active_count}")
                 self.stdout.write(f"   کاربران غیرفعال: {total_count - active_count}")
             else:
