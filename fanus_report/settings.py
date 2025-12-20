@@ -104,7 +104,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Metabase Configuration
-METABASE_SITE_URL = 'http://localhost:3000'  # URL سرویس Metabase شما
+METABASE_SITE_URL = 'http://localhost:3150'  # URL سرویس Metabase شما
 METABASE_SECRET_KEY = ''  # Secret Key برای signed embedding (اختیاری)
 # لیست نمودارهای Metabase که می‌خواهید نمایش دهید
 # فرمت: {'name': 'نام نمایشی', 'dashboard_id': 'ID داشبورد', 'card_id': 'ID کارت (اختیاری)'}
