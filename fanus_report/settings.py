@@ -61,15 +61,14 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     },
     'openwebui_db': {
-        'ENGINE': 'django.db.backends.postgresql', 
-        'NAME': 'openwebui',       
-        'USER': 'your_db_user',  
-        'PASSWORD': 'your_db_password',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'openwebui',
+        'USER': 'myuser',
+        'PASSWORD': 'mypassword',
         'HOST': 'localhost',
         'PORT': '5432',
     }
 }
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
