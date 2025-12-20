@@ -48,15 +48,68 @@ class Command(BaseCommand):
             db_conn.ensure_connection()
             self.stdout.write(self.style.SUCCESS('✅ اتصال به دیتابیس برقرار شد'))
 
+            # بررسی ساختار جدول با raw SQL
+            self.stdout.write("🔍 در حال بررسی ساختار جدول...")
+            cursor = db_conn.cursor()
+            
+            # بررسی ستون‌های موجود در جدول
+            table_name = SourceUser._meta.db_table
+            cursor.execute("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = %s
+            """, [table_name])
+            
+            available_columns = {row[0] for row in cursor.fetchall()}
+            
+            if not available_columns:
+                self.stdout.write(
+                    self.style.ERROR(
+                        f'❌ جدول "{table_name}" یافت نشد! '
+                        f'لطفاً مطمئن شوید که نام جدول در مدل SourceUser صحیح است.'
+                    )
+                )
+                return
+            
+            has_is_active = 'is_active' in available_columns
+            has_created_at = 'created_at' in available_columns
+            
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f'✅ ستون‌های موجود: {", ".join(sorted(available_columns))}'
+                )
+            )
+
             # استخراج کاربران
             self.stdout.write("📊 در حال استخراج کاربران...")
             
-            users_query = SourceUser.objects.using('openwebui_db').all()
+            # ساخت کوئری با فقط ستون‌های موجود
+            if has_is_active and has_created_at:
+                users_query = SourceUser.objects.using('openwebui_db').only(
+                    'id', 'name', 'username', 'email', 'is_active', 'created_at', 'updated_at'
+                )
+            elif has_created_at:
+                users_query = SourceUser.objects.using('openwebui_db').only(
+                    'id', 'name', 'username', 'email', 'created_at', 'updated_at'
+                )
+            else:
+                users_query = SourceUser.objects.using('openwebui_db').only(
+                    'id', 'name', 'username', 'email'
+                )
             
-            if active_only:
+            # فقط اگر ستون is_active وجود دارد، فیلتر کن
+            if active_only and has_is_active:
                 users_query = users_query.filter(is_active=True)
+            elif active_only:
+                self.stdout.write(
+                    self.style.WARNING('⚠️  ستون is_active وجود ندارد. نمایش همه کاربران...')
+                )
             
-            users = list(users_query.order_by('-created_at')[:limit])
+            # مرتب‌سازی - اگر created_at وجود دارد استفاده کن
+            if has_created_at:
+                users = list(users_query.order_by('-created_at')[:limit])
+            else:
+                users = list(users_query[:limit])
 
             if not users:
                 self.stdout.write(self.style.WARNING('⚠️  هیچ کاربری یافت نشد!'))
@@ -68,23 +121,30 @@ class Command(BaseCommand):
 
             # نمایش کاربران
             if output_format == 'table':
-                self.display_table(users)
+                self.display_table(users, has_is_active)
             elif output_format == 'json':
-                self.display_json(users)
+                self.display_json(users, has_is_active)
             elif output_format == 'csv':
-                self.display_csv(users)
+                self.display_csv(users, has_is_active)
 
             # آمار کلی
             total_count = SourceUser.objects.using('openwebui_db').count()
-            active_count = SourceUser.objects.using('openwebui_db').filter(
-                is_active=True
-            ).count()
-
+            
             self.stdout.write("\n" + "="*80)
             self.stdout.write(f"📈 آمار کلی:")
             self.stdout.write(f"   کل کاربران: {total_count}")
-            self.stdout.write(f"   کاربران فعال: {active_count}")
-            self.stdout.write(f"   کاربران غیرفعال: {total_count - active_count}")
+            
+            # فقط اگر ستون is_active وجود دارد، آمار فعال/غیرفعال را نمایش بده
+            if has_is_active:
+                active_count = SourceUser.objects.using('openwebui_db').filter(
+                    is_active=True
+                ).count()
+                self.stdout.write(f"   کاربران فعال: {active_count}")
+                self.stdout.write(f"   کاربران غیرفعال: {total_count - active_count}")
+            else:
+                self.stdout.write(
+                    self.style.WARNING('   ⚠️  اطلاعات وضعیت فعال/غیرفعال در دسترس نیست')
+                )
 
         except OperationalError as e:
             self.stdout.write(
@@ -107,10 +167,16 @@ class Command(BaseCommand):
                 self.style.ERROR(f'❌ خطای غیرمنتظره: {e}')
             )
 
-    def display_table(self, users):
+    def display_table(self, users, has_is_active=False):
         """نمایش کاربران به صورت جدول"""
+        if not users:
+            return
+        
         self.stdout.write("\n" + "="*80)
-        self.stdout.write(f"{'ID':<30} {'نام':<25} {'نام کاربری':<20} {'ایمیل':<30} {'وضعیت'}")
+        if has_is_active:
+            self.stdout.write(f"{'ID':<30} {'نام':<25} {'نام کاربری':<20} {'ایمیل':<30} {'وضعیت'}")
+        else:
+            self.stdout.write(f"{'ID':<30} {'نام':<25} {'نام کاربری':<20} {'ایمیل':<30}")
         self.stdout.write("="*80)
 
         for user in users:
@@ -118,52 +184,90 @@ class Command(BaseCommand):
             name = (user.name or '-')[:23] + '..' if user.name and len(user.name) > 25 else (user.name or '-')
             username = (user.username or '-')[:18] + '..' if user.username and len(user.username) > 20 else (user.username or '-')
             email = (user.email or '-')[:28] + '..' if user.email and len(user.email) > 30 else (user.email or '-')
-            status = '✅ فعال' if user.is_active else '❌ غیرفعال'
+            
+            if has_is_active:
+                try:
+                    status = '✅ فعال' if getattr(user, 'is_active', True) else '❌ غیرفعال'
+                    self.stdout.write(
+                        f"{user_id:<30} {name:<25} {username:<20} {email:<30} {status}"
+                    )
+                except:
+                    self.stdout.write(
+                        f"{user_id:<30} {name:<25} {username:<20} {email:<30}"
+                    )
+            else:
+                self.stdout.write(
+                    f"{user_id:<30} {name:<25} {username:<20} {email:<30}"
+                )
 
-            self.stdout.write(
-                f"{user_id:<30} {name:<25} {username:<20} {email:<30} {status}"
-            )
-
-    def display_json(self, users):
+    def display_json(self, users, has_is_active=False):
         """نمایش کاربران به صورت JSON"""
         import json
         users_data = []
         
         for user in users:
-            users_data.append({
+            user_data = {
                 'id': str(user.id),
                 'name': user.name,
                 'username': user.username,
                 'email': user.email,
-                'is_active': user.is_active,
-                'created_at': user.created_at.isoformat() if user.created_at else None,
-                'updated_at': user.updated_at.isoformat() if user.updated_at else None,
-            })
+            }
+            
+            # اضافه کردن is_active فقط اگر وجود دارد
+            if has_is_active:
+                user_data['is_active'] = getattr(user, 'is_active', True)
+            
+            # اضافه کردن تاریخ‌ها اگر وجود دارند
+            if hasattr(user, 'created_at') and user.created_at:
+                user_data['created_at'] = user.created_at.isoformat()
+            if hasattr(user, 'updated_at') and user.updated_at:
+                user_data['updated_at'] = user.updated_at.isoformat()
+            
+            users_data.append(user_data)
         
         self.stdout.write(json.dumps(users_data, indent=2, ensure_ascii=False))
 
-    def display_csv(self, users):
+    def display_csv(self, users, has_is_active=False):
         """نمایش کاربران به صورت CSV"""
         import csv
         import io
         
+        if not users:
+            return
+        
         output = io.StringIO()
         writer = csv.writer(output)
         
+        # بررسی وجود ستون‌ها
+        has_created_at = hasattr(users[0], 'created_at')
+        has_updated_at = hasattr(users[0], 'updated_at')
+        
         # Header
-        writer.writerow(['ID', 'Name', 'Username', 'Email', 'Is Active', 'Created At', 'Updated At'])
+        header = ['ID', 'Name', 'Username', 'Email']
+        if has_is_active:
+            header.append('Is Active')
+        if has_created_at:
+            header.append('Created At')
+        if has_updated_at:
+            header.append('Updated At')
+        writer.writerow(header)
         
         # Data
         for user in users:
-            writer.writerow([
+            row = [
                 user.id,
                 user.name or '',
                 user.username or '',
                 user.email or '',
-                user.is_active,
-                user.created_at.isoformat() if user.created_at else '',
-                user.updated_at.isoformat() if user.updated_at else '',
-            ])
+            ]
+            if has_is_active:
+                row.append(getattr(user, 'is_active', ''))
+            if has_created_at:
+                row.append(user.created_at.isoformat() if getattr(user, 'created_at', None) else '')
+            if has_updated_at:
+                row.append(user.updated_at.isoformat() if getattr(user, 'updated_at', None) else '')
+            
+            writer.writerow(row)
         
         self.stdout.write(output.getvalue())
 
