@@ -78,7 +78,7 @@
     
     .users-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        grid-template-columns: repeat(3, 1fr);
         gap: 25px;
         padding-bottom: 0;
     }
@@ -168,13 +168,31 @@
         font-size: 1.8em;
         font-weight: 700;
         color: #667eea;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         display: block;
+    }
+    
+    @supports not (-webkit-background-clip: text) {
+        .stat-value {
+            color: #667eea;
+            background: none;
+        }
     }
     
     .stat-label {
         font-size: 0.85em;
         color: #6b7280;
         margin-top: 5px;
+    }
+    
+    .risky-stat {
+        background: none !important;
+        -webkit-background-clip: unset !important;
+        -webkit-text-fill-color: unset !important;
+        background-clip: unset !important;
     }
     
     .risk-badge {
@@ -205,8 +223,8 @@
         margin-top: 15px;
         padding: 12px 24px;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        text-decoration: none;
+        color: white !important;
+        text-decoration: none !important;
         border-radius: 12px;
         display: inline-block;
         font-weight: 600;
@@ -214,12 +232,21 @@
         box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
         width: 100%;
         text-align: center;
+        border: none;
+        cursor: pointer;
     }
     
     .view-report-btn:hover {
         transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-        color: white;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+        background: linear-gradient(135deg, #5568d3 0%, #6a3d8f 100%);
+        color: white !important;
+    }
+    
+    .view-report-btn:active,
+    .view-report-btn:focus,
+    .view-report-btn:visited {
+        color: white !important;
     }
     
     .empty-state {
@@ -234,6 +261,12 @@
         font-size: 4em;
         color: #d1d5db;
         margin-bottom: 15px;
+    }
+    
+    @media (max-width: 1200px) {
+        .users-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
     }
     
     @media (max-width: 768px) {
@@ -286,7 +319,7 @@
                     <span class="stat-label">تحلیل‌ها</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-value" style="color: {% if item.stats.risky_count > 0 %}#f5576c{% else %}#38ef7d{% endif %};">{{ item.stats.risky_count }}</span>
+                    <span class="stat-value risky-stat" style="{% if item.stats.risky_count > 0 %}color: #f5576c;{% else %}color: #38ef7d;{% endif %}">{{ item.stats.risky_count }}</span>
                     <span class="stat-label">ریسکی</span>
                 </div>
                 <div class="stat-item">
@@ -297,7 +330,7 @@
             
             {% if item.stats.most_common_category %}
             <div style="margin-top: 15px; text-align: center;">
-                <span class="risk-badge risk-low">
+                <span class="risk-badge" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
                     <i class="fas fa-tag"></i> {{ item.stats.most_common_category.category }}
                 </span>
             </div>

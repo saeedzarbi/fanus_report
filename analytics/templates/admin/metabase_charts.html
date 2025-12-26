@@ -3,152 +3,225 @@
 
 {% block extrastyle %}
 {{ block.super }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
+    * {
+        box-sizing: border-box;
+    }
+    
+    body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+    }
+    
     .metabase-container {
-        padding: 20px;
+        background: #f8fafc;
+        padding: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
     }
+    
+    .header-wrapper {
+        position: relative;
+        flex-shrink: 0;
+        z-index: 100;
+    }
+    
     .metabase-header {
-        margin-bottom: 30px;
-        padding-bottom: 20px;
-        border-bottom: 2px solid #667eea;
+        background: white;
+        padding: 8px 20px 8px 90px;
+        border-radius: 0;
+        margin-bottom: 0;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border-bottom: 2px solid #3b82f6;
     }
+    
     .metabase-header h1 {
         margin: 0;
-        color: #333;
-        font-size: 2em;
+        color: #1f2937;
+        font-size: 1em;
+        font-weight: 600;
     }
-    .metabase-header p {
-        color: #666;
-        margin-top: 10px;
-    }
+    
     .dashboard-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
-        gap: 30px;
-        margin-top: 30px;
+        grid-template-columns: 1fr;
+        gap: 0;
+        margin-top: 0;
+        flex: 1;
+        overflow: hidden;
+        padding: 0;
+        min-height: 0;
     }
+    
     .dashboard-card {
         background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        border-radius: 0;
+        box-shadow: none;
         overflow: hidden;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        transition: all 0.2s ease;
+        border: none;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
     }
-    .dashboard-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
+    
     .dashboard-header {
-        padding: 20px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+        display: none;
     }
-    .dashboard-header h2 {
-        margin: 0;
-        font-size: 1.5em;
-    }
-    .dashboard-header p {
-        margin: 10px 0 0 0;
-        opacity: 0.9;
-        font-size: 0.9em;
-    }
+    
     .dashboard-iframe-container {
         position: relative;
         width: 100%;
-        height: 600px;
+        height: 100%;
+        flex: 1;
         overflow: hidden;
+        background: white;
+        min-height: 0;
     }
+    
     .dashboard-iframe {
         width: 100%;
         height: 100%;
         border: none;
         display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
     }
+    
     .dashboard-actions {
-        padding: 15px 20px;
-        background: #f8f9fa;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-top: 1px solid #e0e0e0;
+        display: none;
     }
+    
+    .dashboard-actions span {
+        color: #6b7280;
+        font-size: 0.85em;
+    }
+    
     .btn-metabase {
-        padding: 8px 16px;
-        background: #667eea;
+        padding: 8px 14px;
+        background: #3b82f6;
         color: #ffffff !important;
         text-decoration: none;
-        border-radius: 5px;
-        font-weight: 600;
-        transition: all 0.3s ease;
+        border-radius: 8px;
+        font-weight: 500;
+        font-size: 0.9em;
+        transition: all 0.2s ease;
         border: none;
         display: inline-block;
     }
+    
     .btn-metabase:hover {
-        background: #5568d3;
+        background: #2563eb;
         color: #ffffff !important;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     }
+    
     .btn-metabase:visited,
     .btn-metabase:active,
     .btn-metabase:focus {
         color: #ffffff !important;
     }
+    
     .empty-state {
         text-align: center;
-        padding: 60px 20px;
+        padding: 40px 20px;
         background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #e5e7eb;
     }
+    
     .empty-state h2 {
-        color: #666;
-        margin-bottom: 15px;
-    }
-    .empty-state p {
-        color: #999;
-        margin-bottom: 20px;
-    }
-    .back-link {
-        display: inline-block;
-        margin-bottom: 20px;
-        color: #667eea;
-        text-decoration: none;
+        color: #1f2937;
+        margin-bottom: 12px;
+        font-size: 1.3em;
         font-weight: 600;
     }
-    .back-link:hover {
-        text-decoration: underline;
+    
+    .empty-state p {
+        color: #6b7280;
+        margin-bottom: 12px;
+        font-size: 0.9em;
     }
+    
+    .back-link {
+        display: inline-block;
+        margin: 0;
+        color: #3b82f6;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.8em;
+        padding: 5px 10px;
+        background: white;
+        border-radius: 6px;
+        border: 1px solid #e5e7eb;
+        transition: all 0.2s ease;
+        position: absolute;
+        top: 6px;
+        left: 16px;
+        z-index: 101;
+    }
+    
+    .back-link:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+        text-decoration: none;
+    }
+    
     .loading-indicator {
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        color: #667eea;
-        font-size: 1.2em;
+        color: #3b82f6;
+        font-size: 1em;
+    }
+    
+    @media (max-width: 768px) {
+        .metabase-header {
+            padding: 6px 12px 6px 70px;
+        }
+        
+        .metabase-header h1 {
+            font-size: 0.9em;
+        }
+        
+        .back-link {
+            top: 5px;
+            left: 12px;
+            padding: 4px 8px;
+            font-size: 0.75em;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="metabase-container">
-    <a href="/admin/dashboard/" class="back-link">← بازگشت به داشبورد</a>
-    
-    <div class="metabase-header">
-        <h1>📊 نمودارهای تحلیلی Metabase</h1>
-        <p>در این بخش می‌توانید نمودارها و داشبوردهای تحلیلی را مشاهده کنید</p>
+    <div class="header-wrapper">
+        <a href="/admin/dashboard/" class="back-link">
+            <i class="fas fa-arrow-right"></i> بازگشت
+        </a>
+        <div class="metabase-header">
+            <h1><i class="fas fa-chart-line"></i> نمودارهای تحلیلی Metabase</h1>
+        </div>
     </div>
 
     {% if has_dashboards %}
         <div class="dashboard-grid">
             {% for dashboard in dashboards %}
             <div class="dashboard-card">
-                <div class="dashboard-header">
-                    <h2>{{ dashboard.name }}</h2>
-                    {% if dashboard.description %}
-                    <p>{{ dashboard.description }}</p>
-                    {% endif %}
-                </div>
                 <div class="dashboard-iframe-container">
                     <div class="loading-indicator">در حال بارگذاری...</div>
                     <iframe 
@@ -156,23 +229,19 @@
                         src="{{ dashboard.embed_url }}"
                         frameborder="0"
                         allowtransparency="true"
+                        scrolling="no"
                         onload="this.parentElement.querySelector('.loading-indicator').style.display='none'"
                     ></iframe>
-                </div>
-                <div class="dashboard-actions">
-                    <span style="color: #666; font-size: 0.9em;">ID: {{ dashboard.dashboard_id }}</span>
-                    <a href="{{ dashboard.full_url }}" target="_blank" class="btn-metabase">
-                        مشاهده در Metabase →
-                    </a>
                 </div>
             </div>
             {% endfor %}
         </div>
     {% else %}
         <div class="empty-state">
+            <i class="fas fa-chart-bar" style="font-size: 3em; color: #d1d5db; margin-bottom: 16px;"></i>
             <h2>هیچ نموداری تنظیم نشده است</h2>
             <p>لطفاً در فایل settings.py تنظیمات METABASE_DASHBOARDS را پیکربندی کنید.</p>
-            <p style="font-size: 0.9em; color: #999;">
+            <p style="font-size: 0.85em; color: #9ca3af; margin-top: 8px;">
                 URL Metabase: {{ metabase_url|default:"تنظیم نشده" }}
             </p>
         </div>

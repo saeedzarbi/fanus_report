@@ -106,11 +106,17 @@
         box-shadow: 0 5px 20px rgba(0,0,0,0.15);
     }
     
+    .top-section {
+        display: grid;
+        grid-template-columns: 1fr 350px;
+        gap: 25px;
+        margin-bottom: 25px;
+    }
+    
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 25px;
-        margin-bottom: 0;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
     }
     
     .stat-card {
@@ -197,6 +203,23 @@
         box-shadow: 0 5px 20px rgba(0,0,0,0.08);
         margin-bottom: 0;
         border: 1px solid rgba(0,0,0,0.05);
+    }
+    
+    .main-content {
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+    }
+    
+    .metabase-section {
+        position: sticky;
+        top: 20px;
+        align-self: start;
+        height: fit-content;
+    }
+    
+    .metabase-section .section-card {
+        margin-bottom: 0;
     }
     
     .section-card:last-child {
@@ -341,6 +364,282 @@
         margin-top: 8px;
     }
     
+    .metabase-dashboards-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 25px;
+        margin-top: 0;
+    }
+    
+    .metabase-dashboard-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+        width: 550px;
+        flex-shrink: 0;
+        margin-bottom: 0;
+    }
+    
+    .metabase-dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    }
+    
+    .metabase-dashboard-header {
+        padding: 20px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    
+    .metabase-dashboard-header h3 {
+        margin: 0;
+        font-size: 1.3em;
+        font-weight: 700;
+    }
+    
+    .metabase-dashboard-header p {
+        margin: 8px 0 0 0;
+        opacity: 0.9;
+        font-size: 0.9em;
+    }
+    
+    .metabase-iframe-container {
+        position: relative;
+        width: 100%;
+        height: 450px;
+        overflow: hidden;
+    }
+    
+    .metabase-iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        display: block;
+    }
+    
+    .metabase-loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #667eea;
+        font-size: 1.1em;
+    }
+    
+    .metabase-modal-btn {
+        margin-top: 15px;
+        padding: 12px 24px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white !important;
+        text-decoration: none !important;
+        border-radius: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        cursor: pointer;
+        border: none;
+        width: 100%;
+    }
+    
+    .metabase-modal-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+        background: linear-gradient(135deg, #5568d3 0%, #6a3d8f 100%);
+        color: white !important;
+    }
+    
+    .modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 10000;
+        backdrop-filter: blur(5px);
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .modal-overlay.active {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    .modal-content {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        max-width: 95vw;
+        max-height: 95vh;
+        width: fit-content;
+        min-width: 600px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        animation: slideUp 0.3s ease;
+        position: relative;
+    }
+    
+    @media (max-width: 800px) {
+        .modal-content {
+            width: 95vw;
+            min-width: 95vw;
+        }
+    }
+    
+    @keyframes slideUp {
+        from { transform: translateY(50px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+    
+    .modal-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 25px 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.8em;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .modal-close {
+        background: rgba(255,255,255,0.2);
+        border: none;
+        color: white;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        font-size: 24px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+    
+    .modal-close:hover {
+        background: rgba(255,255,255,0.3);
+        transform: rotate(90deg);
+    }
+    
+    .modal-body {
+        padding: 30px;
+        overflow-y: auto;
+        flex: 1;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        width: fit-content;
+        box-sizing: border-box;
+    }
+    
+    @media (max-width: 800px) {
+        .modal-body {
+            width: 100%;
+        }
+    }
+    
+    .modal-dashboards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(500px, auto));
+        gap: 25px;
+        width: fit-content;
+        grid-auto-flow: row;
+    }
+    
+    @media (max-width: 800px) {
+        .modal-dashboards-grid {
+            grid-template-columns: 1fr !important;
+            width: 100%;
+        }
+    }
+    
+    @media (min-width: 800px) and (max-width: 1200px) {
+        .modal-dashboards-grid {
+            grid-template-columns: repeat(2, auto) !important;
+        }
+    }
+    
+    @media (min-width: 1200px) {
+        .modal-dashboards-grid {
+            grid-template-columns: repeat(3, auto) !important;
+        }
+    }
+    
+    .modal-dashboard-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        overflow: hidden;
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+        width: 500px;
+        min-width: 500px;
+    }
+    
+    @media (max-width: 800px) {
+        .modal-dashboard-card {
+            width: 100%;
+            min-width: 100%;
+        }
+    }
+    
+    .modal-dashboard-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    }
+    
+    .modal-iframe-container {
+        position: relative;
+        width: 100%;
+        height: 500px;
+        overflow: hidden;
+        background: white;
+    }
+    
+    @media (min-width: 1600px) {
+        .modal-iframe-container {
+            height: 550px;
+        }
+    }
+    
+    .modal-iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        display: block;
+    }
+    
+    .modal-loading {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #667eea;
+        font-size: 1.1em;
+    }
+    
     @media (max-width: 768px) {
         .report-header h1 {
             font-size: 1.8em;
@@ -352,6 +651,73 @@
         
         .category-list {
             grid-template-columns: 1fr;
+        }
+        
+        .top-section {
+            grid-template-columns: 1fr;
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .metabase-section {
+            position: static;
+        }
+        
+        .metabase-dashboard-card {
+            width: 100%;
+        }
+        
+        .metabase-iframe-container {
+            height: 400px;
+        }
+        
+        .modal-dashboards-grid {
+            grid-template-columns: 1fr !important;
+        }
+        
+        .modal-content {
+            width: 95vw !important;
+            min-width: 95vw !important;
+            max-width: 95vw !important;
+            max-height: 98vh;
+        }
+        
+        .modal-body {
+            width: 100% !important;
+        }
+        
+        .modal-dashboards-grid {
+            width: 100% !important;
+        }
+        
+        .modal-iframe-container {
+            height: 400px;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+    }
+    
+    @media (max-width: 1200px) {
+        .top-section {
+            grid-template-columns: 1fr;
+        }
+        
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    @media (min-width: 1400px) {
+        .stats-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
+        
+        .top-section {
+            grid-template-columns: 1fr 400px;
         }
     }
 </style>
@@ -385,111 +751,185 @@
         </div>
     </div>
 
-    <div class="stats-grid">
-        <div class="stat-card success">
-            <div class="stat-card-header">
-                <div class="stat-content">
-                    <div class="stat-label">کل تحلیل‌ها</div>
-                    <div class="stat-value">{{ report.statistics.total_analyses }}</div>
+    <div class="top-section">
+        <div class="stats-grid">
+            <div class="stat-card success">
+                <div class="stat-card-header">
+                    <div class="stat-content">
+                        <div class="stat-label">کل تحلیل‌ها</div>
+                        <div class="stat-value">{{ report.statistics.total_analyses }}</div>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
                 </div>
-                <div class="stat-icon">
-                    <i class="fas fa-chart-bar"></i>
+            </div>
+            
+            <div class="stat-card warning">
+                <div class="stat-card-header">
+                    <div class="stat-content">
+                        <div class="stat-label">تحلیل‌های ریسکی</div>
+                        <div class="stat-value">{{ report.statistics.risky_count }}</div>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card info">
+                <div class="stat-card-header">
+                    <div class="stat-content">
+                        <div class="stat-label">میانگین احساس</div>
+                        <div class="stat-value">{{ report.statistics.avg_sentiment }}</div>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-smile"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="stat-card {% if report.risk_analysis.risk_level == 'high' %}danger{% elif report.risk_analysis.risk_level == 'medium' %}warning{% else %}success{% endif %}">
+                <div class="stat-card-header">
+                    <div class="stat-content">
+                        <div class="stat-label">سطح ریسک</div>
+                        <div class="stat-value" style="font-size: 1.5em;">
+                            <span class="risk-badge risk-{{ report.risk_analysis.risk_level }}">
+                                {{ report.risk_analysis.risk_level|upper }}
+                            </span>
+                        </div>
+                        <div style="margin-top: 10px; font-size: 0.9em; color: #6b7280;">
+                            {{ report.risk_analysis.risk_percentage }}% ریسک
+                        </div>
+                    </div>
+                    <div class="stat-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
                 </div>
             </div>
         </div>
-        
-        <div class="stat-card warning">
-            <div class="stat-card-header">
-                <div class="stat-content">
-                    <div class="stat-label">تحلیل‌های ریسکی</div>
-                    <div class="stat-value">{{ report.statistics.risky_count }}</div>
+
+        {% if has_metabase_dashboards %}
+        <div class="metabase-section">
+            <div class="section-card">
+                <div class="section-header">
+                    <div class="section-icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <h2>نمودارهای Metabase</h2>
                 </div>
-                <div class="stat-icon">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
+                <button class="metabase-modal-btn" onclick="openMetabaseModal()">
+                    <i class="fas fa-chart-line"></i>
+                    <span>مشاهده نمودارهای Metabase</span>
+                </button>
             </div>
         </div>
-        
-        <div class="stat-card info">
-            <div class="stat-card-header">
-                <div class="stat-content">
-                    <div class="stat-label">میانگین احساس</div>
-                    <div class="stat-value">{{ report.statistics.avg_sentiment }}</div>
+        {% endif %}
+    </div>
+
+    <div class="main-content">
+        {% if report.category_breakdown %}
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-icon">
+                    <i class="fas fa-tags"></i>
                 </div>
-                <div class="stat-icon">
-                    <i class="fas fa-smile"></i>
+                <h2>دسته‌بندی تحلیل‌ها</h2>
+            </div>
+            <div class="category-list">
+                {% for category in report.category_breakdown %}
+                <div class="category-item">
+                    <span class="value">{{ category.count }}</span>
+                    <span class="label">{{ category.category }}</span>
                 </div>
+                {% endfor %}
             </div>
         </div>
-        
-        <div class="stat-card {% if report.risk_analysis.risk_level == 'high' %}danger{% elif report.risk_analysis.risk_level == 'medium' %}warning{% else %}success{% endif %}">
-            <div class="stat-card-header">
-                <div class="stat-content">
-                    <div class="stat-label">سطح ریسک</div>
-                    <div class="stat-value" style="font-size: 1.5em;">
-                        <span class="risk-badge risk-{{ report.risk_analysis.risk_level }}">
-                            {{ report.risk_analysis.risk_level|upper }}
+        {% endif %}
+
+        {% if report.recent_risky_analyses %}
+        <div class="section-card">
+            <div class="section-header">
+                <div class="section-icon">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <h2>تحلیل‌های ریسکی اخیر</h2>
+            </div>
+            <ul class="risky-list">
+                {% for analysis in report.recent_risky_analyses %}
+                <li class="risky-item">
+                    <div class="risky-item-header">
+                        <span class="risky-item-date">
+                            <i class="fas fa-clock"></i> {{ analysis.timestamp|date:"Y-m-d H:i" }}
+                        </span>
+                        <span class="risky-item-category">{{ analysis.category }}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                        <span style="color: #f5576c; font-weight: 600;">
+                            <i class="fas fa-heart"></i> احساس: {{ analysis.sentiment_score }}/10
                         </span>
                     </div>
-                    <div style="margin-top: 10px; font-size: 0.9em; color: #6b7280;">
-                        {{ report.risk_analysis.risk_percentage }}% ریسک
+                    <div class="risky-item-summary">
+                        {{ analysis.summary }}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if has_metabase_dashboards %}
+<div class="modal-overlay" id="metabaseModal" onclick="closeMetabaseModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h2>
+                <i class="fas fa-chart-pie"></i>
+                نمودارهای Metabase
+            </h2>
+            <button class="modal-close" onclick="closeMetabaseModal(event)">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-dashboards-grid">
+                {% for dashboard in metabase_dashboards %}
+                <div class="modal-dashboard-card">
+                    <div class="modal-iframe-container">
+                        <div class="modal-loading">در حال بارگذاری...</div>
+                        <iframe 
+                            class="modal-iframe"
+                            src="{{ dashboard.embed_url }}"
+                            frameborder="0"
+                            allowtransparency="true"
+                            onload="this.parentElement.querySelector('.modal-loading').style.display='none'"
+                        ></iframe>
                     </div>
                 </div>
-                <div class="stat-icon">
-                    <i class="fas fa-shield-alt"></i>
-                </div>
+                {% endfor %}
             </div>
         </div>
     </div>
-
-    {% if report.category_breakdown %}
-    <div class="section-card">
-        <div class="section-header">
-            <div class="section-icon">
-                <i class="fas fa-tags"></i>
-            </div>
-            <h2>دسته‌بندی تحلیل‌ها</h2>
-        </div>
-        <div class="category-list">
-            {% for category in report.category_breakdown %}
-            <div class="category-item">
-                <span class="value">{{ category.count }}</span>
-                <span class="label">{{ category.category }}</span>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-
-    {% if report.recent_risky_analyses %}
-    <div class="section-card">
-        <div class="section-header">
-            <div class="section-icon">
-                <i class="fas fa-exclamation-circle"></i>
-            </div>
-            <h2>تحلیل‌های ریسکی اخیر</h2>
-        </div>
-        <ul class="risky-list">
-            {% for analysis in report.recent_risky_analyses %}
-            <li class="risky-item">
-                <div class="risky-item-header">
-                    <span class="risky-item-date">
-                        <i class="fas fa-clock"></i> {{ analysis.timestamp|date:"Y-m-d H:i" }}
-                    </span>
-                    <span class="risky-item-category">{{ analysis.category }}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
-                    <span style="color: #f5576c; font-weight: 600;">
-                        <i class="fas fa-heart"></i> احساس: {{ analysis.sentiment_score }}/10
-                    </span>
-                </div>
-                <div class="risky-item-summary">
-                    {{ analysis.summary }}
-                </div>
-            </li>
-            {% endfor %}
-        </ul>
-    </div>
-    {% endif %}
 </div>
+
+<script>
+    function openMetabaseModal() {
+        document.getElementById('metabaseModal').classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function closeMetabaseModal(event) {
+        if (event) {
+            event.stopPropagation();
+        }
+        document.getElementById('metabaseModal').classList.remove('active');
+        document.body.style.overflow = '';
+    }
+    
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeMetabaseModal();
+        }
+    });
+</script>
+{% endif %}
 {% endblock %}

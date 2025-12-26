@@ -1,18 +1,16 @@
-"""
-Django settings for fanus_report project.
-"""
+
 
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-change-this-secret-key-in-production'
+SECRET_KEY = 'django-i49a026dcd4134a169777ddfd989-in-production'
 
 DEBUG = True
 
 ALLOWED_HOSTS = []
 
-USE_MOCK_DATA = True
+USE_MOCK_DATA = False
 
 INSTALLED_APPS = [
     'jazzmin',
@@ -104,24 +102,28 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Metabase Configuration
-METABASE_SITE_URL = 'http://localhost:3150'  # URL سرویس Metabase شما
-METABASE_SECRET_KEY = ''  # Secret Key برای signed embedding (اختیاری)
-# لیست نمودارهای Metabase که می‌خواهید نمایش دهید
-# فرمت: {'name': 'نام نمایشی', 'dashboard_id': 'ID داشبورد', 'card_id': 'ID کارت (اختیاری)'}
+METABASE_SITE_URL = 'http://65.109.177.81:3105'
+METABASE_SECRET_KEY = '03cf53547d8e2c8e949a026dcd4134a169777ddfd989326358e148d7bee1e712'  # Secret Key برای signed embedding (اختیاری)
+
+METABASE_SITE_URL = "http://65.109.177.81:3105"
+
 METABASE_DASHBOARDS = [
     {
-        'name': 'داشبورد اصلی',
-        'dashboard_id': 1,
-        'description': 'نمای کلی آمار و تحلیل‌ها'
+        'dashboard_id': 3,
+        'name': 'داشبورد مدیریت فانوس',
+        'description': 'نمایش نمودارهای تحلیل رفتار کاربران',
+        
+        'public_uuid': 'aa7b6449-343e-4949-8035-f737ec7ad31f', 
     },
-    # می‌توانید نمودارهای بیشتری اضافه کنید
-    # {
-    #     'name': 'تحلیل احساسات',
-    #     'dashboard_id': 2,
-    #     'description': 'نمودارهای تحلیل احساسات'
-    # },
+    {
+        'name': 'پروفایل اختصاصی کاربر',
+        'description': 'تحلیل رفتار و سلامت روان کاربر',
+        'public_uuid': 'efb57138-34c0-4586-9908-d5ce6926f00e',
+        'filter_param': 'userid', 
+    }
 ]
 
+METABASE_SECRET_KEY = None
 JAZZMIN_SETTINGS = {
     "site_title": "سامانه هوشمند فانوس",
     "site_header": "پنل مدیریت فانوس",
@@ -133,7 +135,7 @@ JAZZMIN_SETTINGS = {
     "site_icon": None,
     "welcome_sign": "سامانه هوشمند تحلیل رفتاری فانوس",
     "copyright": "فانوس",
-    "search_model": ["auth.User", "auth.Group", "analytics.Employee"],
+    "search_model": [],
     "user_avatar": None,
     "theme": "darkly",
     "dark_mode_theme": "cyborg",
@@ -191,6 +193,6 @@ JAZZMIN_UI_TWEAKS = {
     "sidebar_nav_compact_style": False,
     "sidebar_nav_legacy_style": False,
     "sidebar_nav_flat_style": False,
-    "rtl": False,  # Force LTR (Left to Right)
+    "rtl": False,
 }
 

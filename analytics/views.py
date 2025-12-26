@@ -61,46 +61,40 @@ def dashboard(request):
     return render(request, 'admin/dashboard.html', context)
 
 
+from django.shortcuts import render
+from django.contrib.admin.views.decorators import staff_member_required
+from django.conf import settings
+
 @staff_member_required
 def metabase_charts(request):
-    """
-    نمایش نمودارهای Metabase در یک صفحه جداگانه
-    """
+
     metabase_url = getattr(settings, 'METABASE_SITE_URL', 'http://localhost:3000')
     dashboards = getattr(settings, 'METABASE_DASHBOARDS', [])
-    secret_key = getattr(settings, 'METABASE_SECRET_KEY', '')
     
-    # ساخت URLهای embed برای هر داشبورد
     dashboard_urls = []
+    
     for dashboard in dashboards:
-        dashboard_id = dashboard.get('dashboard_id')
-        if dashboard_id:
-            # ساخت URL embed برای Metabase
-            # اگر secret key وجود داشته باشد، از signed embedding استفاده می‌کنیم
-            if secret_key:
-                # برای signed embedding باید از کتابخانه Metabase استفاده کرد
-                # در اینجا URL ساده را می‌سازیم
-                embed_url = f"{metabase_url}/embed/dashboard/{dashboard_id}#bordered=true&titled=true"
-            else:
-                # URL ساده برای public embedding (نیاز به تنظیمات در Metabase دارد)
-                embed_url = f"{metabase_url}/embed/dashboard/{dashboard_id}#bordered=true&titled=true"
-            
+        public_uuid = dashboard.get('public_uuid')
+        
+        embed_url = ""
+        
+        if public_uuid:
+            embed_url = f"{metabase_url}/public/dashboard/{public_uuid}#bordered=true&titled=true"
+        
+        if embed_url:
             dashboard_urls.append({
-                'name': dashboard.get('name', f'داشبورد {dashboard_id}'),
+                'name': dashboard.get('name', 'داشبورد بدون نام'),
                 'description': dashboard.get('description', ''),
-                'dashboard_id': dashboard_id,
                 'embed_url': embed_url,
-                'full_url': f"{metabase_url}/dashboard/{dashboard_id}",
+                'full_url': embed_url, 
             })
     
     context = {
-        'metabase_url': metabase_url,
         'dashboards': dashboard_urls,
         'has_dashboards': len(dashboard_urls) > 0,
     }
     
     return render(request, 'admin/metabase_charts.html', context)
-
 
 @staff_member_required
 def user_reports_list(request):
@@ -121,12 +115,11 @@ def user_reports_list(request):
     
     return render(request, 'admin/user_reports_list.html', context)
 
-
 @staff_member_required
 def user_report_detail(request, user_id):
-    get_object_or_404(Employee, user_id=user_id)
-    report_service = UserReportService()
+    employee = get_object_or_404(Employee, user_id=user_id)
     
+    report_service = UserReportService()
     days = int(request.GET.get('days', 30))
     start_date = timezone.now() - timedelta(days=days)
     end_date = timezone.now()
@@ -137,15 +130,33 @@ def user_report_detail(request, user_id):
         end_date=end_date
     )
     
-    if not report_data:
-        from django.contrib import messages
-        messages.error(request, f"کاربر با شناسه {user_id} یافت نشد.")
-        from django.shortcuts import redirect
-        return redirect('user_reports_list')
+    metabase_url = getattr(settings, 'METABASE_SITE_URL', '')
+    all_dashboards = getattr(settings, 'METABASE_DASHBOARDS', [])
     
+    user_dashboards = []
+    
+    for dashboard in all_dashboards:
+        public_uuid = dashboard.get('public_uuid')
+        filter_param = dashboard.get('filter_param') 
+
+        if public_uuid:
+            
+            if filter_param:
+                embed_url = f"{metabase_url}/public/dashboard/{public_uuid}?{filter_param}={user_id}#bordered=true&titled=true"
+                
+                user_dashboards.append({
+                    'name': dashboard.get('name'),
+                    'description': dashboard.get('description', ''),
+                    'embed_url': embed_url
+                })
+            
+
     context = {
         'report': report_data,
         'selected_days': days,
+        'employee': employee, 
+        'metabase_dashboards': user_dashboards,
+        'has_metabase_dashboards': len(user_dashboards) > 0,
     }
     
     return render(request, 'admin/user_report_detail.html', context)
