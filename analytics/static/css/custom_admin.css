@@ -15,6 +15,7 @@
 .navbar {
     margin-left: 250px !important;
     margin-right: 0 !important;
+    transition: margin 0.3s ease;
 }
 
 .sidebar-mini.sidebar-collapse .content-wrapper,
@@ -40,6 +41,26 @@
 
     .sidebar-open .main-sidebar {
         transform: translateX(0);
+    }
+}
+
+.control-sidebar {
+    width: 320px;
+}
+
+.control-sidebar-open .main-header,
+.control-sidebar-open .content-wrapper,
+.control-sidebar-open .main-footer {
+    margin-right: 320px !important;
+    transition: margin 0.3s ease;
+}
+
+@media (max-width: 768px) {
+
+    .control-sidebar-open .main-header,
+    .control-sidebar-open .content-wrapper,
+    .control-sidebar-open .main-footer {
+        margin-right: 0 !important;
     }
 }
 
