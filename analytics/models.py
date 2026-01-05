@@ -91,7 +91,7 @@ class ChatAnalysis(models.Model):
     source_chat_id = models.CharField(max_length=255, unique=True, verbose_name="شناسه چت اصلی")
     user_id = models.CharField(max_length=255, verbose_name="کاربر")
     task = models.ForeignKey(AnalysisTask, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="تسک")
-    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="زمان تحلیل")
+    timestamp = models.DateTimeField(default=timezone.now, verbose_name="زمان تحلیل")
     
     sentiment_score = models.IntegerField(default=5, validators=[MinValueValidator(1), MaxValueValidator(10)], verbose_name="امتیاز احساس (۱-۱۰)")
     category = models.CharField(max_length=100, verbose_name="دسته‌بندی موضوعی")
