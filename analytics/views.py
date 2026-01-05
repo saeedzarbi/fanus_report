@@ -65,25 +65,30 @@ from django.shortcuts import render
 from django.contrib.admin.views.decorators import staff_member_required
 from django.conf import settings
 
+from django.shortcuts import render
+from django.contrib.admin.views.decorators import staff_member_required
+from django.conf import settings
+
 @staff_member_required
 def metabase_charts(request):
-
     metabase_url = getattr(settings, 'METABASE_SITE_URL', 'http://localhost:3000')
-    dashboards = getattr(settings, 'METABASE_DASHBOARDS', [])
+    all_dashboards = getattr(settings, 'METABASE_DASHBOARDS', [])
     
     dashboard_urls = []
     
-    for dashboard in dashboards:
+    for dashboard in all_dashboards:
+        # شرط مهم: اگر داشبورد نیاز به پارامتر فیلتر (مثل user_id) دارد، 
+        # آن را در این صفحه عمومی نشان نده و رد شو.
+        if dashboard.get('filter_param'):
+            continue
+
         public_uuid = dashboard.get('public_uuid')
-        
-        embed_url = ""
         
         if public_uuid:
             embed_url = f"{metabase_url}/public/dashboard/{public_uuid}#bordered=true&titled=true"
-        
-        if embed_url:
+            
             dashboard_urls.append({
-                'name': dashboard.get('name', 'داشبورد بدون نام'),
+                'name': dashboard.get('name', 'داشبورد عمومی'),
                 'description': dashboard.get('description', ''),
                 'embed_url': embed_url,
                 'full_url': embed_url, 
