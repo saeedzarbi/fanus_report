@@ -85,7 +85,7 @@ def metabase_charts(request):
         public_uuid = dashboard.get('public_uuid')
         
         if public_uuid:
-            embed_url = f"{metabase_url}/public/dashboard/{public_uuid}#bordered=true&titled=true"
+            embed_url = f"{metabase_url}/public/dashboard/{public_uuid}#bordered=true&titled=false"
             
             dashboard_urls.append({
                 'name': dashboard.get('name', 'داشبورد عمومی'),
