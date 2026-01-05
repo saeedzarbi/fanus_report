@@ -9,7 +9,7 @@ class SourceChat(models.Model):
     created_at = models.BigIntegerField() 
 
     class Meta:
-        managed = False  
+        managed = True  
         db_table = 'chat'  
         app_label = 'analytics'
 
@@ -24,7 +24,7 @@ class SourceUser(models.Model):
     is_active = models.BooleanField(default=True, blank=True, null=True)
     
     class Meta:
-        managed = False
+        managed = True
         db_table = 'user'  
         app_label = 'analytics'
 

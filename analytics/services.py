@@ -665,16 +665,13 @@ class UserSyncService:
                     result['errors'].append(error_msg)
                     logger.error(error_msg)
             
-            # مدیریت کاربرانی که در دیتابیس منبع نیستند
             missing_user_ids = existing_user_ids - source_user_ids
             
             if delete_missing and not deactivate_missing:
-                # حذف کاربران
                 deleted_count = Employee.objects.filter(user_id__in=missing_user_ids).delete()[0]
                 result['deleted'] = deleted_count
                 logger.info(f"{deleted_count} کاربر حذف شد")
             elif deactivate_missing:
-                # غیرفعال کردن کاربران
                 deactivated_count = Employee.objects.filter(
                     user_id__in=missing_user_ids,
                     is_active=True
@@ -690,9 +687,7 @@ class UserSyncService:
         return result
     
     def get_sync_summary(self):
-        """
-        دریافت خلاصه وضعیت سینک
-        """
+
         try:
             source_users = self.get_source_users()
             source_user_ids = {user['id'] for user in source_users}
