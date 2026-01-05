@@ -3,14 +3,23 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 
 class SourceChat(models.Model):
-    id = models.CharField(max_length=255, primary_key=True)
+    id = models.CharField(primary_key=True, unique=True, max_length=255)
     user_id = models.CharField(max_length=255)
-    content = models.TextField()  
-    created_at = models.BigIntegerField() 
+    title = models.TextField()
+    share_id = models.CharField(unique=True, max_length=255, blank=True, null=True)
+    archived = models.BooleanField()
+    created_at = models.BigIntegerField()
+    updated_at = models.BigIntegerField()
+    
+    chat = models.TextField(blank=True, null=True) 
+    
+    pinned = models.BooleanField(blank=True, null=True)
+    meta = models.TextField() 
+    folder_id = models.TextField(blank=True, null=True)
 
     class Meta:
-        managed = True  
-        db_table = 'chat'  
+        managed = False
+        db_table = 'chat' 
         app_label = 'analytics'
 
 class SourceUser(models.Model):
