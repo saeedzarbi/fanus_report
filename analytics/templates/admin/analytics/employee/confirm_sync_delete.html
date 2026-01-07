@@ -3,7 +3,13 @@
 
 {% block extrastyle %}
 {{ block.super }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
 <style>
+    html, body, * {
+        font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Arial, sans-serif !important;
+        direction: rtl;
+    }
+    
     .sync-summary {
         background: #f8f9fa;
         border: 1px solid #dee2e6;
@@ -103,4 +109,20 @@
         <a href="{% url 'admin:analytics_employee_changelist' %}" style="margin-right: 10px; padding: 10px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 5px; display: inline-block;">انصراف</a>
     </div>
 </form>
+
+<script>
+// تبدیل اعداد انگلیسی به فارسی
+function toPersianNumbers(str) {
+    const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+    return str.toString().replace(/[0-9]/g, function(d) {
+        return persianDigits[parseInt(d)];
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.summary-value').forEach(el => {
+        el.textContent = toPersianNumbers(el.textContent);
+    });
+});
+</script>
 {% endblock %}

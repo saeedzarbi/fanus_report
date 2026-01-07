@@ -1,0 +1,112 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
+<style>
+    /* اعمال فونت وزیرمتن به همه المان‌های ادمین */
+    html, body {
+        font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Arial, sans-serif !important;
+        direction: rtl;
+    }
+    
+    body, input, textarea, select, button, table, th, td, p, span, div, a, 
+    h1, h2, h3, h4, h5, h6, label, li, dt, dd, code, pre,
+    .form-row, .help, .errorlist, .aligned label, .module caption,
+    #changelist-filter, .changelist-filter, .actions, .paginator,
+    #branding h1, #site-name, #user-tools, .breadcrumbs,
+    .submit-row input, .deletelink, .addlink, .changelink,
+    fieldset, legend, .aligned p.help, .module h2, .inline-group h2,
+    .calendar caption, .calendarbox, .timelist {
+        font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Arial, sans-serif !important;
+    }
+    
+    /* بهبود استایل عناوین */
+    #branding h1, #site-name a {
+        font-weight: 700 !important;
+    }
+    
+    h1, h2, h3 {
+        font-weight: 700 !important;
+    }
+    
+    /* بهبود استایل جدول‌ها */
+    #changelist table thead th {
+        font-weight: 600 !important;
+    }
+    
+    /* بهبود استایل فرم‌ها */
+    .aligned label {
+        font-weight: 600 !important;
+    }
+    
+    /* بهبود استایل دکمه‌ها */
+    input[type="submit"], input[type="button"], button, .submit-row input {
+        font-weight: 600 !important;
+    }
+    
+    /* بهبود استایل لینک‌ها در breadcrumbs */
+    .breadcrumbs {
+        font-weight: 500 !important;
+    }
+</style>
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<script>
+// تبدیل اعداد انگلیسی به فارسی
+function toPersianNumbers(str) {
+    const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+    return str.toString().replace(/[0-9]/g, function(d) {
+        return persianDigits[parseInt(d)];
+    });
+}
+
+// تبدیل همه اعداد در صفحه
+function convertAllNumbers() {
+    // المان‌هایی که باید اعدادشون فارسی بشه
+    const selectors = [
+        '.paginator',
+        '#changelist-filter li',
+        '.results td',
+        '.form-row .help',
+        '.module caption',
+        '.breadcrumbs',
+        '#user-tools',
+        '.actions span',
+        'fieldset .aligned p',
+        '.readonly',
+        '.field-created_at',
+        '.field-updated_at',
+        '.field-timestamp',
+        '.field-last_run',
+        '.field-generated_at',
+        'td'
+    ];
+    
+    selectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(el => {
+            // اگر المان شامل input یا select نباشه
+            if (!el.querySelector('input, select, textarea')) {
+                el.childNodes.forEach(node => {
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        node.textContent = toPersianNumbers(node.textContent);
+                    }
+                });
+            }
+        });
+    });
+    
+    // تبدیل اعداد در المان‌های readonly
+    document.querySelectorAll('.readonly, .vReadOnlyField').forEach(el => {
+        el.innerHTML = toPersianNumbers(el.innerHTML);
+    });
+}
+
+// اجرا بعد از لود صفحه
+document.addEventListener('DOMContentLoaded', convertAllNumbers);
+</script>
+{% endblock %}
+
