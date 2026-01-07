@@ -950,4 +950,47 @@
     </div>
 </div>
 
+<script>
+// تبدیل اعداد انگلیسی به فارسی
+function toPersianNumbers(str) {
+    const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+    return str.toString().replace(/[0-9]/g, function(d) {
+        return persianDigits[parseInt(d)];
+    });
+}
+
+// تبدیل همه اعداد در صفحه
+function convertAllNumbers() {
+    // انتخاب المان‌هایی که شامل اعداد هستند
+    const selectors = [
+        '.stat-value',
+        '.value',
+        '.stat-footer',
+        '.stat-item .value',
+        '.status-card .value',
+        '.modern-table td',
+        '.badge'
+    ];
+    
+    selectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(el => {
+            // فقط متن مستقیم را تبدیل کن، نه تگ‌های داخلی
+            el.childNodes.forEach(node => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    node.textContent = toPersianNumbers(node.textContent);
+                }
+            });
+        });
+    });
+    
+    // تبدیل تاریخ‌ها در جدول
+    document.querySelectorAll('.modern-table td').forEach(td => {
+        td.innerHTML = toPersianNumbers(td.innerHTML);
+    });
+}
+
+// اجرا بعد از لود صفحه
+document.addEventListener('DOMContentLoaded', convertAllNumbers);
+</script>
+
 {% endblock %}
