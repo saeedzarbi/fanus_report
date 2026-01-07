@@ -54,8 +54,9 @@
     .report-header h1 {
         margin: 0;
         font-size: 2.5em;
-        font-weight: 700;
+        font-weight: 800;
         text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        font-family: 'Vazirmatn', sans-serif !important;
     }
     
     .report-header p {
@@ -190,10 +191,12 @@
     
     .stat-value {
         font-size: 2.8em;
-        font-weight: 700;
+        font-weight: 800;
         color: #1f2937;
         margin: 0;
         line-height: 1;
+        font-family: 'Vazirmatn', sans-serif !important;
+        font-variant-numeric: tabular-nums;
     }
     
     .section-card {
@@ -242,6 +245,7 @@
         display: flex;
         align-items: center;
         gap: 12px;
+        font-family: 'Vazirmatn', sans-serif !important;
     }
     
     .section-icon {
@@ -278,9 +282,11 @@
     
     .category-item .value {
         font-size: 2em;
-        font-weight: 700;
+        font-weight: 800;
         color: #667eea;
         display: block;
+        font-family: 'Vazirmatn', sans-serif !important;
+        font-variant-numeric: tabular-nums;
     }
     
     .category-item .label {
@@ -885,6 +891,48 @@
         {% endif %}
     </div>
 </div>
+
+<script>
+// تبدیل اعداد انگلیسی به فارسی
+function toPersianNumbers(str) {
+    const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+    return str.toString().replace(/[0-9]/g, function(d) {
+        return persianDigits[parseInt(d)];
+    });
+}
+
+// تبدیل همه اعداد در صفحه
+function convertAllNumbers() {
+    const selectors = [
+        '.stat-value',
+        '.stat-label',
+        '.category-item .value',
+        '.category-item .label',
+        '.risk-badge',
+        '.risky-item-date',
+        '.risky-item-summary',
+        '.period-selector a',
+        '.report-header p'
+    ];
+    
+    selectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(el => {
+            el.childNodes.forEach(node => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    node.textContent = toPersianNumbers(node.textContent);
+                }
+            });
+        });
+    });
+    
+    // تبدیل innerHTML برای المان‌هایی که HTML دارند
+    document.querySelectorAll('.risky-item').forEach(el => {
+        el.innerHTML = toPersianNumbers(el.innerHTML);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', convertAllNumbers);
+</script>
 
 {% if has_metabase_dashboards %}
 <div class="modal-overlay" id="metabaseModal" onclick="closeMetabaseModal(event)">

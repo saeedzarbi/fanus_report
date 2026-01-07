@@ -4,9 +4,19 @@
 {% block extrastyle %}
 {{ block.super }}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
 <style>
     * {
         box-sizing: border-box;
+    }
+    
+    html, body {
+        font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Arial, sans-serif !important;
+        direction: rtl;
+    }
+    
+    body, input, textarea, select, button, table, th, td, p, span, div, a, h1, h2, h3, h4, h5, h6, label, .stat-value, .stat-label, .risk-badge, .view-report-btn {
+        font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Arial, sans-serif !important;
     }
     
     .reports-wrapper {
@@ -50,10 +60,11 @@
     .reports-header h1 {
         margin: 0;
         font-size: 2.5em;
-        font-weight: 700;
+        font-weight: 800;
         position: relative;
         z-index: 1;
         text-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        font-family: 'Vazirmatn', sans-serif !important;
     }
     
     .reports-header p {
@@ -151,6 +162,7 @@
         font-size: 1.3em;
         color: #1f2937;
         font-weight: 700;
+        font-family: 'Vazirmatn', sans-serif !important;
     }
     
     .user-info p {
@@ -174,13 +186,15 @@
     
     .stat-value {
         font-size: 1.8em;
-        font-weight: 700;
+        font-weight: 800;
         color: #667eea;
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
         display: block;
+        font-family: 'Vazirmatn', sans-serif !important;
+        font-variant-numeric: tabular-nums;
     }
     
     @supports not (-webkit-background-clip: text) {
@@ -242,6 +256,7 @@
         text-align: center;
         border: none;
         cursor: pointer;
+        font-family: 'Vazirmatn', sans-serif !important;
     }
     
     .view-report-btn:hover {
@@ -365,4 +380,36 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+// تبدیل اعداد انگلیسی به فارسی
+function toPersianNumbers(str) {
+    const persianDigits = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
+    return str.toString().replace(/[0-9]/g, function(d) {
+        return persianDigits[parseInt(d)];
+    });
+}
+
+// تبدیل همه اعداد در صفحه
+function convertAllNumbers() {
+    const selectors = [
+        '.stat-value',
+        '.stat-label',
+        '.user-info p',
+        '.risk-badge'
+    ];
+    
+    selectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(el => {
+            el.childNodes.forEach(node => {
+                if (node.nodeType === Node.TEXT_NODE) {
+                    node.textContent = toPersianNumbers(node.textContent);
+                }
+            });
+        });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', convertAllNumbers);
+</script>
 {% endblock %}
