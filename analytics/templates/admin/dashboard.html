@@ -4,9 +4,19 @@
 {% block extrastyle %}
 {{ block.super }}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css">
 <style>
     * {
         box-sizing: border-box;
+    }
+    
+    html, body {
+        font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Arial, sans-serif !important;
+        direction: rtl;
+    }
+    
+    body, input, textarea, select, button, table, th, td, p, span, div, a, h1, h2, h3, h4, h5, h6, label, .stat-value, .stat-label, .badge, .btn-action, .sidebar-btn, code {
+        font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Arial, sans-serif !important;
     }
     
     .dashboard-wrapper {
@@ -33,8 +43,9 @@
     .dashboard-header h1 {
         margin: 0;
         font-size: 1.5em;
-        font-weight: 600;
+        font-weight: 700;
         color: #1f2937;
+        font-family: 'Vazirmatn', sans-serif !important;
     }
     
     .dashboard-header p {
@@ -101,11 +112,12 @@
     .sidebar-card-header h3 {
         margin: 0;
         font-size: 1.1em;
-        font-weight: 600;
+        font-weight: 700;
         color: #1f2937;
         display: flex;
         align-items: center;
         gap: 8px;
+        font-family: 'Vazirmatn', sans-serif !important;
     }
     
     .sidebar-card-icon {
@@ -138,7 +150,7 @@
         align-items: center;
         justify-content: center;
         gap: 8px;
-        font-weight: 500;
+        font-weight: 600;
         font-size: 0.9em;
         transition: all 0.2s ease;
         position: relative;
@@ -146,6 +158,7 @@
         pointer-events: auto !important;
         cursor: pointer !important;
         border: none;
+        font-family: 'Vazirmatn', sans-serif !important;
     }
     
     .sidebar-btn:hover {
@@ -245,18 +258,19 @@
     .stat-label {
         font-size: 0.85em;
         color: #6b7280;
-        font-weight: 500;
+        font-weight: 600;
         margin-bottom: 6px;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
+        font-family: 'Vazirmatn', sans-serif !important;
     }
     
     .stat-value {
         font-size: 2.2em;
-        font-weight: 700;
+        font-weight: 900;
         color: #1f2937;
         margin: 0;
         line-height: 1;
+        font-family: 'Vazirmatn', sans-serif !important;
+        font-variant-numeric: tabular-nums;
     }
     
     .stat-footer {
@@ -296,11 +310,12 @@
     .section-header h2 {
         margin: 0;
         font-size: 1.3em;
-        font-weight: 600;
+        font-weight: 700;
         color: #1f2937;
         display: flex;
         align-items: center;
         gap: 10px;
+        font-family: 'Vazirmatn', sans-serif !important;
     }
     
     .section-icon {
@@ -341,12 +356,16 @@
         font-size: 0.9em;
         color: #6b7280;
         margin-bottom: 8px;
+        font-weight: 600;
+        font-family: 'Vazirmatn', sans-serif !important;
     }
     
     .stat-item .value {
         font-size: 1.8em;
-        font-weight: 700;
+        font-weight: 800;
         color: #3b82f6;
+        font-family: 'Vazirmatn', sans-serif !important;
+        font-variant-numeric: tabular-nums;
     }
     
     .modern-table {
@@ -368,10 +387,10 @@
     .modern-table th {
         padding: 18px 20px;
         text-align: right;
-        font-weight: 600;
+        font-weight: 700;
         font-size: 0.95em;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        letter-spacing: 0;
+        font-family: 'Vazirmatn', sans-serif !important;
     }
     
     .modern-table tbody tr {
@@ -392,6 +411,7 @@
         padding: 12px 16px;
         color: #4b5563;
         font-size: 0.9em;
+        font-family: 'Vazirmatn', sans-serif !important;
     }
     
     .modern-table td a {
@@ -412,8 +432,7 @@
         border-radius: 20px;
         font-size: 0.85em;
         font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
+        font-family: 'Vazirmatn', sans-serif !important;
     }
     
     .badge-success {
@@ -467,14 +486,16 @@
         color: #6b7280;
         font-size: 0.85em;
         margin-bottom: 8px;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
+        font-weight: 600;
+        font-family: 'Vazirmatn', sans-serif !important;
     }
     
     .status-card .value {
         font-size: 1.8em;
-        font-weight: 700;
+        font-weight: 800;
         color: #1f2937;
+        font-family: 'Vazirmatn', sans-serif !important;
+        font-variant-numeric: tabular-nums;
     }
     
     .quick-actions {
@@ -494,11 +515,12 @@
         align-items: center;
         justify-content: center;
         gap: 8px;
-        font-weight: 500;
+        font-weight: 600;
         font-size: 0.9em;
         transition: all 0.2s ease;
         border: none;
         position: relative;
+        font-family: 'Vazirmatn', sans-serif !important;
     }
     
     .btn-action:hover {
@@ -545,6 +567,7 @@
         font-weight: 600;
         color: #4b5563;
         margin: 5px;
+        font-family: 'Vazirmatn', sans-serif !important;
     }
     
     .chart-card {

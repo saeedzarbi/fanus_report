@@ -77,8 +77,7 @@ def metabase_charts(request):
     dashboard_urls = []
     
     for dashboard in all_dashboards:
-        # شرط مهم: اگر داشبورد نیاز به پارامتر فیلتر (مثل user_id) دارد، 
-        # آن را در این صفحه عمومی نشان نده و رد شو.
+
         if dashboard.get('filter_param'):
             continue
 
