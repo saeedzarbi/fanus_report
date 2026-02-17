@@ -183,8 +183,14 @@ class OpenWebUIService:
             processed_chats = []
             for sc in source_chats:
                 try:
-                    # 1. پارس کردن فیلد chat که JSON است
-                    chat_history = json.loads(sc.chat) if sc.chat else []
+                    # 1. پارس کردن فیلد chat (ممکن است از دیتابیس به صورت str یا از قبل dict/list برگردد)
+                    raw_chat = sc.chat
+                    if not raw_chat:
+                        chat_history = []
+                    elif isinstance(raw_chat, (dict, list)):
+                        chat_history = raw_chat
+                    else:
+                        chat_history = json.loads(raw_chat)
                     
                     # 2. پیدا کردن آخرین پیام کاربر
                     # ساختار معمول OpenWebUI: لیستی از آبجکت‌ها شامل 'role' و 'content'
