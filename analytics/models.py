@@ -23,19 +23,29 @@ class SourceChat(models.Model):
         app_label = 'analytics'
 
 class SourceUser(models.Model):
-
+    """
+    مدل خواندن‌-only از جدول user دیتابیس OpenWebUI.
+    توجه: جدول user در OpenWebUI ممکن است ستون is_active نداشته باشد؛
+    is_active به صورت property و همیشه True است.
+    """
     id = models.CharField(max_length=255, primary_key=True)
     name = models.CharField(max_length=255, blank=True, null=True, verbose_name="نام")
     username = models.CharField(max_length=255, blank=True, null=True, verbose_name="نام کاربری")
     email = models.EmailField(blank=True, null=True, verbose_name="ایمیل")
     created_at = models.DateTimeField(blank=True, null=True)
     updated_at = models.DateTimeField(blank=True, null=True)
-    is_active = models.BooleanField(default=True, blank=True, null=True)
-    
+    # is_active در جدول user OpenWebUI وجود ندارد؛ برای سازگاری با ادمین/سرویس به صورت property
+    # اگر نسخهٔ OpenWebUI شما ستون is_active دارد، می‌توانید دوباره فیلد مدل اضافه کنید.
+
     class Meta:
         managed = True
-        db_table = 'user'  
+        db_table = 'user'
         app_label = 'analytics'
+
+    @property
+    def is_active(self):
+        """جدول user در OpenWebUI این ستون را ندارد؛ مقدار پیش‌فرض."""
+        return True
 
 class ChatSyncState(models.Model):
     """ذخیره زمان آخرین سینک چت‌ها برای سینک افزایشی"""

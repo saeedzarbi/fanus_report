@@ -43,14 +43,22 @@ class Command(BaseCommand):
             action='store_true',
             help='سینک کاربران و حذف کاربرانی که در OpenWebUI نیستند (خطرناک!)'
         )
+        parser.add_argument(
+            '--no-sync',
+            action='store_true',
+            help='فقط نمایش کاربران؛ سینک با مدل کارمندان انجام نشود (پیش‌فرض: سینک انجام می‌شود)'
+        )
 
     def handle(self, *args, **options):
         limit = options['limit']
         active_only = options.get('active_only', False)
         output_format = options['format']
+        no_sync = options.get('no_sync', False)
         sync = options.get('sync', False)
         sync_deactivate = options.get('sync_deactivate', False)
         sync_delete = options.get('sync_delete', False)
+        # پیش‌فرض: سینک با مدل کارمندان انجام شود (مگر --no-sync داده شده باشد)
+        do_sync = not no_sync or sync or sync_deactivate or sync_delete
 
         self.stdout.write("🔍 در حال اتصال به دیتابیس OpenWebUI...")
 
@@ -122,8 +130,8 @@ class Command(BaseCommand):
             self.stdout.write(f"   کاربران فعال (در لیست نمایش): {active_count}")
             self.stdout.write(f"   کاربران غیرفعال (در لیست نمایش): {len(source_users) - active_count}")
 
-            # انجام سینک اگر درخواست شده باشد
-            if sync or sync_deactivate or sync_delete:
+            # انجام سینک با مدل کارمندان (پیش‌فرض روشن است؛ با --no-sync خاموش می‌شود)
+            if do_sync:
                 self.stdout.write("\n" + "="*80)
                 self.stdout.write("🔄 شروع فرآیند سینک کاربران...")
                 

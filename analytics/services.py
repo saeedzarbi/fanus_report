@@ -543,27 +543,38 @@ class UserSyncService:
             ]
         
         try:
-            """
-            پیاده‌سازی ساده و مقاوم در برابر نبودن جدول user:
-            - اگر جدول user و ستون‌هایش موجود باشد، می‌توانیم بعداً اینجا منطق را گسترش دهیم.
-            - در حال حاضر، مستقیم از جدول chat (SourceChat) لیست user_id ها را استخراج می‌کنیم.
-            """
+            # اول از جدول user (SourceUser) خواندن — نام و ایمیل واقعی برای سینک با کارمندان
+            users_by_id = {}
+            try:
+                for u in SourceUser.objects.using('openwebui_db').all():
+                    users_by_id[u.id] = {
+                        'id': u.id,
+                        'name': u.name,
+                        'username': getattr(u, 'username', None) or '',
+                        'email': u.email or '',
+                        'is_active': getattr(u, 'is_active', True) if u.is_active is not None else True,
+                    }
+            except Exception as user_table_error:
+                logger.debug(f"جدول user در OpenWebUI در دسترس نیست، استفاده از چت‌ها: {user_table_error}")
+                users_by_id = {}
+
+            # user_idهایی که در چت‌ها هستند ولی شاید در جدول user نباشند
             chats = SourceChat.objects.using('openwebui_db').values('user_id').distinct()
-            users_list = []
             for chat in chats:
                 user_id = chat['user_id']
                 if not user_id:
                     continue
-                users_list.append({
-                    'id': user_id,
-                    'name': user_id,  # در این حالت فقط id داریم
-                    'username': '',
-                    'email': '',
-                    'is_active': True,
-                })
-            return users_list
+                if user_id not in users_by_id:
+                    users_by_id[user_id] = {
+                        'id': user_id,
+                        'name': user_id,
+                        'username': '',
+                        'email': '',
+                        'is_active': True,
+                    }
+            return list(users_by_id.values())
         except Exception as e:
-            logger.error(f"خطا در دریافت کاربران از OpenWebUI (از روی چت‌ها): {e}")
+            logger.error(f"خطا در دریافت کاربران از OpenWebUI: {e}")
             return []
     
     def sync_users(self, deactivate_missing=True, delete_missing=False):

@@ -451,7 +451,7 @@ class SyncedChatAdmin(admin.ModelAdmin):
 class SourceUserAdmin(admin.ModelAdmin):
     """کاربران دیتابیس OpenWebUI (فقط نمایش)"""
     list_display = ('id', 'name', 'username', 'email', 'is_active', 'created_at', 'updated_at')
-    list_filter = ('is_active',)
+    # is_active در جدول OpenWebUI وجود ندارد؛ فقط به صورت property نمایش داده می‌شود
     search_fields = ('id', 'name', 'username', 'email')
     readonly_fields = ('id', 'name', 'username', 'email', 'created_at', 'updated_at', 'is_active')
     ordering = ('name',)
