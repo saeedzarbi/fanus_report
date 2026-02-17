@@ -61,10 +61,10 @@ DATABASES = {
     'openwebui_db': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'openwebui',
-        'USER': 'myuser',
-        'PASSWORD': 'mypassword',
+        'USER': 'openwebui',
+        'PASSWORD': 'CHANGE_ME_STRONG_PASSWORD',
         'HOST': 'localhost',
-        'PORT': '5434',
+        'PORT': '5435',
     }
 }
 AUTH_PASSWORD_VALIDATORS = [
