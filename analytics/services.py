@@ -158,6 +158,59 @@ class MockOllamaService:
 
 import json
 
+
+def _extract_chat_content_for_analysis(chat_history):
+    """
+    استخراج محتوای گفت‌وگو برای تحلیل از ساختارهای مختلف OpenWebUI.
+    ترجیح: آخرین پیام کاربر؛ در غیر این صورت متن همهٔ پیام‌های کاربر؛ در نهایت کل گفت‌وگو.
+    """
+    def msg_text(m):
+        return (m.get('content') or m.get('text') or '').strip()
+
+    def msg_role(m):
+        return (m.get('role') or '').lower()
+
+    messages_ordered = []
+
+    if isinstance(chat_history, list):
+        messages_ordered = chat_history
+    elif isinstance(chat_history, dict):
+        if 'messages' in chat_history:
+            msgs = chat_history['messages']
+            if isinstance(msgs, list):
+                messages_ordered = msgs
+            elif isinstance(msgs, dict):
+                # ساختار history با messages به صورت دیکشنری (key = id)
+                messages_ordered = list(msgs.values())
+        elif 'history' in chat_history:
+            hist = chat_history['history']
+            if isinstance(hist, dict) and 'messages' in hist:
+                m = hist['messages']
+                messages_ordered = list(m.values()) if isinstance(m, dict) else (m if isinstance(m, list) else [])
+
+    if not messages_ordered:
+        return ""
+
+    # آخرین پیام کاربر
+    for msg in reversed(messages_ordered):
+        if msg_role(msg) == 'user':
+            t = msg_text(msg)
+            if t:
+                return t
+
+    # اگر پیام کاربر نبود، متن همهٔ پیام‌های کاربر را با هم ادغام کن
+    user_texts = [msg_text(m) for m in messages_ordered if msg_role(m) == 'user' and msg_text(m)]
+    if user_texts:
+        return "\n".join(user_texts)
+
+    # fallback: همهٔ پیام‌ها (user + assistant) برای تحلیل کلی
+    all_texts = [msg_text(m) for m in messages_ordered if msg_text(m)]
+    if all_texts:
+        return "\n".join(all_texts)
+
+    return ""
+
+
 class OpenWebUIService:
     @staticmethod
     def get_chats(user_ids: Optional[List[str]] = None, start_date=None, end_date=None, limit=1000):
@@ -179,7 +232,7 @@ class OpenWebUIService:
             
             source_chats = query.order_by('-created_at')[:limit]
             
-            # --- بخش مهم: استخراج پیام‌ها از JSON ---
+            # --- بخش مهم: استخراج پیام‌ها از JSON (سازگار با ساختارهای مختلف OpenWebUI) ---
             processed_chats = []
             for sc in source_chats:
                 try:
@@ -191,35 +244,17 @@ class OpenWebUIService:
                         chat_history = raw_chat
                     else:
                         chat_history = json.loads(raw_chat)
-                    
-                    # 2. پیدا کردن آخرین پیام کاربر
-                    # ساختار معمول OpenWebUI: لیستی از آبجکت‌ها شامل 'role' و 'content'
-                    last_user_message = ""
-                    
-                    # اگر ساختار history لیست باشد
-                    if isinstance(chat_history, list):
-                        for msg in reversed(chat_history):
-                            if msg.get('role') == 'user':
-                                last_user_message = msg.get('content', '')
-                                break
-                    # اگر ساختار history دیکشنری باشد (بسته به ورژن OpenWebUI)
-                    elif isinstance(chat_history, dict) and 'messages' in chat_history:
-                         for msg in reversed(chat_history['messages']):
-                            if msg.get('role') == 'user':
-                                last_user_message = msg.get('content', '')
-                                break
 
-                    # اگر پیامی پیدا شد، آن را به عنوان یک چت قابل تحلیل برمی‌گردانیم
-                    if last_user_message:
-                        # ما یک شیء موقت می‌سازیم که فیلد content داشته باشد
-                        # تا بقیه کدهای شما بدون تغییر کار کنند
+                    # 2. استخراج محتوای قابل تحلیل از هر ساختار شناخته‌شده
+                    content_to_analyze = _extract_chat_content_for_analysis(chat_history)
+
+                    if content_to_analyze:
                         processed_chats.append(MockSourceChat(
                             id=sc.id,
                             user_id=sc.user_id,
-                            content=last_user_message,  # محتوای استخراج شده
+                            content=content_to_analyze,
                             created_at=sc.created_at
                         ))
-                        
                 except Exception as json_err:
                     logger.warning(f"Error parsing chat JSON for {sc.id}: {json_err}")
                     continue

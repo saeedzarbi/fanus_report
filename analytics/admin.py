@@ -275,8 +275,9 @@ class EmployeeAdmin(admin.ModelAdmin):
         else:
             self.message_user(
                 request,
-                "چتی برای تحلیل پیدا نشد.",
-                messages.INFO
+                "چتی برای تحلیل پیدا نشد. احتمالاً برای کاربران انتخاب‌شده در OpenWebUI چتی وجود ندارد، "
+                "یا همهٔ چت‌ها قبلاً تحلیل شده‌اند. اتصال به دیتابیس OpenWebUI و سینک چت‌ها را بررسی کنید.",
+                messages.WARNING
             )
 
     analyze_last_20_chats_action.short_description = "🧠 تحلیل آخرین ۲۰ چت کاربر"
