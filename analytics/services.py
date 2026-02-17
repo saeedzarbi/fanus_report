@@ -6,7 +6,7 @@ from django.db import connections
 from django.db.models import Count, Avg
 from django.utils import timezone
 from datetime import timedelta
-from .models import SourceChat, ChatAnalysis, Employee, Report, ReportType, AnalysisTask, UserGroup, SourceUser
+from .models import SourceChat, ChatAnalysis, Employee, Report, ReportType, AnalysisTask, UserGroup, SourceUser, ChatSyncState, SyncedChat
 from typing import List, Dict, Optional
 import logging
 
@@ -764,6 +764,91 @@ class UserSyncService:
                 'new_users': [],
                 'missing_users': []
             }
+
+
+class ChatSyncService:
+    """
+    سینک چت‌های کاربران از OpenWebUI.
+    هر بار فقط چت‌هایی که بعد از آخرین زمان سینک به‌روزرسانی شده‌اند ذخیره می‌شوند.
+    """
+
+    def get_last_sync_time(self):
+        """زمان آخرین سینک چت را برمی‌گرداند یا None برای اولین بار."""
+        state, _ = ChatSyncState.objects.get_or_create(
+            key='default',
+            defaults={'last_sync_at': None}
+        )
+        return state.last_sync_at
+
+    def sync_chats(self, limit=5000):
+        """
+        چت‌های جدید یا به‌روز شده (از آخرین سینک) را از OpenWebUI می‌خواند و در SyncedChat ذخیره می‌کند.
+        Returns:
+            dict: added, updated, errors, last_sync_at
+        """
+        result = {'added': 0, 'updated': 0, 'errors': [], 'last_sync_at': None}
+        if getattr(settings, 'USE_MOCK_DATA', False):
+            result['errors'].append('USE_MOCK_DATA فعال است؛ سینک واقعی از دیتابیس OpenWebUI انجام نشد.')
+            return result
+        try:
+            last_sync_at = self.get_last_sync_time()
+            query = SourceChat.objects.using('openwebui_db').all()
+            if last_sync_at is not None:
+                last_ts = int(last_sync_at.timestamp())
+                query = query.filter(updated_at__gt=last_ts)
+            source_chats = query.order_by('updated_at')[:limit]
+            max_updated = None
+            for sc in source_chats:
+                try:
+                    _, created = SyncedChat.objects.update_or_create(
+                        id=sc.id,
+                        defaults={
+                            'user_id': sc.user_id or '',
+                            'title': getattr(sc, 'title', '') or '',
+                            'chat': sc.chat or '',
+                            'created_at': getattr(sc, 'created_at', 0) or 0,
+                            'updated_at': getattr(sc, 'updated_at', 0) or 0,
+                        }
+                    )
+                    if created:
+                        result['added'] += 1
+                    else:
+                        result['updated'] += 1
+                    if getattr(sc, 'updated_at', None):
+                        if max_updated is None or sc.updated_at > max_updated:
+                            max_updated = sc.updated_at
+                except Exception as e:
+                    result['errors'].append(f"چت {getattr(sc, 'id', '?')}: {str(e)}")
+                    logger.warning(f"خطا در ذخیره چت {getattr(sc, 'id', '?')}: {e}")
+            state, _ = ChatSyncState.objects.get_or_create(key='default', defaults={'last_sync_at': None})
+            if max_updated is not None:
+                from datetime import datetime
+                state.last_sync_at = timezone.make_aware(
+                    datetime.fromtimestamp(max_updated),
+                    timezone.get_current_timezone()
+                )
+            else:
+                state.last_sync_at = timezone.now()
+            state.save()
+            result['last_sync_at'] = state.last_sync_at
+        except Exception as e:
+            logger.error(f"خطا در سینک چت‌ها: {e}")
+            result['errors'].append(str(e))
+        return result
+
+    def get_sync_summary(self):
+        """خلاصه وضعیت سینک چت برای نمایش در ادمین."""
+        try:
+            state = ChatSyncState.objects.filter(key='default').first()
+            last_sync_at = state.last_sync_at if state else None
+            total_synced = SyncedChat.objects.count()
+            return {
+                'last_sync_at': last_sync_at,
+                'total_synced': total_synced,
+            }
+        except Exception as e:
+            logger.error(f"خطا در دریافت خلاصه سینک چت: {e}")
+            return {'last_sync_at': None, 'total_synced': 0}
 
 
 class UserReportService:

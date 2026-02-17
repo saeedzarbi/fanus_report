@@ -1,17 +1,14 @@
 from django.contrib import admin
 from django.core.management import call_command
 from django.contrib import messages
-from django.utils.html import format_html
-from django.urls import reverse
-from django.utils import timezone
-from datetime import timedelta
 from .models import (
-    Employee, UserGroup, AnalysisTask, ChatAnalysis, 
-    ReportType, Report, ReportSchedule
+    Employee, UserGroup, AnalysisTask, ChatAnalysis,
+    ReportType, Report, ReportSchedule,
+    ChatSyncState, SyncedChat,
+    SourceUser, SourceChat
 )
-from .services import ReportGenerationService, UserSyncService
+from .services import ReportGenerationService, UserSyncService, ChatSyncService
 
-# پیام‌های ثابت
 ALL_USERS_UP_TO_DATE_MSG = "همه کاربران به‌روز هستند."
 
 @admin.register(Employee)
@@ -21,21 +18,26 @@ class EmployeeAdmin(admin.ModelAdmin):
     search_fields = ('name', 'user_id', 'email')
     ordering = ('name',)
     actions = [
-        'show_sync_summary_action', 
-        'sync_users_action', 
-        'sync_users_deactivate_action', 
-        'sync_users_delete_action'
+        'show_sync_summary_action',
+        'sync_users_action',
+        'sync_users_deactivate_action',
+        'sync_users_delete_action',
+        'sync_chats_action',
     ]
-    
+
     def changelist_view(self, request, extra_context=None):
         """افزودن دکمه‌های سینک در بالای لیست"""
         extra_context = extra_context or {}
-        
-        # اضافه کردن اطلاعات سینک به context
+
+        # اضافه کردن اطلاعات سینک کاربران به context
         sync_service = UserSyncService()
         summary = sync_service.get_sync_summary()
         extra_context['sync_summary'] = summary
-        
+
+        # اضافه کردن اطلاعات سینک چت‌ها به context
+        chat_sync_service = ChatSyncService()
+        extra_context['chat_sync_summary'] = chat_sync_service.get_sync_summary()
+
         return super().changelist_view(request, extra_context)
     
     def show_sync_summary_action(self, request, queryset):
@@ -198,6 +200,43 @@ class EmployeeAdmin(admin.ModelAdmin):
     
     sync_users_delete_action.short_description = "🗑️ سینک کاربران (با حذف کاربران حذف شده)"
 
+    def sync_chats_action(self, request, queryset):
+        """
+        سینک چت‌های کاربران از OpenWebUI.
+        فقط چت‌هایی که بعد از آخرین زمان سینک به‌روزرسانی شده‌اند ذخیره می‌شوند.
+        """
+        chat_sync_service = ChatSyncService()
+        result = chat_sync_service.sync_chats()
+
+        message_parts = []
+        if result['added'] > 0:
+            message_parts.append(f"{result['added']} چت جدید ذخیره شد")
+        if result['updated'] > 0:
+            message_parts.append(f"{result['updated']} چت به‌روزرسانی شد")
+        if result['errors']:
+            message_parts.append(f"{len(result['errors'])} خطا")
+
+        if message_parts:
+            self.message_user(
+                request,
+                " | ".join(message_parts),
+                messages.SUCCESS if not result['errors'] else messages.WARNING
+            )
+        else:
+            self.message_user(
+                request,
+                "همه چت‌ها به‌روز هستند. (چت جدیدی برای سینک نبود)",
+                messages.INFO
+            )
+        if result.get('last_sync_at'):
+            self.message_user(
+                request,
+                f"آخرین زمان سینک: {result['last_sync_at']}",
+                messages.INFO
+            )
+
+    sync_chats_action.short_description = "💬 سینک چت‌های کاربران (از آخرین به‌روزرسانی)"
+
 @admin.register(UserGroup)
 class UserGroupAdmin(admin.ModelAdmin):
     list_display = ('name', 'employee_count', 'created_at')
@@ -325,3 +364,100 @@ class ReportScheduleAdmin(admin.ModelAdmin):
                 except Exception as e:
                     self.message_user(request, f"خطا در اجرای {schedule.name}: {e}", messages.ERROR)
     run_schedule_action.short_description = "اجرای زمانبندی‌های انتخاب شده"
+
+
+@admin.register(ChatSyncState)
+class ChatSyncStateAdmin(admin.ModelAdmin):
+    list_display = ('key', 'last_sync_at')
+    readonly_fields = ('key', 'last_sync_at')
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(SyncedChat)
+class SyncedChatAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user_id', 'title_short', 'updated_at_display', 'synced_at')
+    list_filter = ('user_id', 'synced_at')
+    search_fields = ('id', 'user_id', 'title')
+    readonly_fields = ('id', 'user_id', 'title', 'chat', 'created_at', 'updated_at', 'synced_at')
+    ordering = ('-synced_at',)
+
+    def title_short(self, obj):
+        return (obj.title[:50] + '...') if obj.title and len(obj.title) > 50 else (obj.title or '-')
+    title_short.short_description = 'عنوان'
+
+    def updated_at_display(self, obj):
+        if not obj.updated_at:
+            return '-'
+        from datetime import datetime
+        from django.utils import timezone as tz
+        try:
+            dt = datetime.fromtimestamp(obj.updated_at)
+            return tz.make_aware(dt, tz.get_current_timezone()).strftime('%Y-%m-%d %H:%M')
+        except Exception:
+            return str(obj.updated_at)
+    updated_at_display.short_description = 'به‌روزرسانی در منبع'
+
+
+@admin.register(SourceUser)
+class SourceUserAdmin(admin.ModelAdmin):
+    """کاربران دیتابیس OpenWebUI (فقط نمایش)"""
+    list_display = ('id', 'name', 'username', 'email', 'is_active', 'created_at', 'updated_at')
+    list_filter = ('is_active',)
+    search_fields = ('id', 'name', 'username', 'email')
+    readonly_fields = ('id', 'name', 'username', 'email', 'created_at', 'updated_at', 'is_active')
+    ordering = ('name',)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(SourceChat)
+class SourceChatAdmin(admin.ModelAdmin):
+    """چت‌های دیتابیس OpenWebUI (فقط نمایش)"""
+    list_display = ('id', 'user_id', 'title_short', 'created_at_ts', 'updated_at_ts')
+    list_filter = ('user_id',)
+    search_fields = ('id', 'user_id', 'title')
+    readonly_fields = ('id', 'user_id', 'title', 'share_id', 'archived', 'created_at', 'updated_at', 'chat', 'pinned', 'meta', 'folder_id')
+    ordering = ('-updated_at',)
+
+    def title_short(self, obj):
+        return (obj.title[:50] + '...') if obj.title and len(obj.title) > 50 else (obj.title or '-')
+    title_short.short_description = 'عنوان'
+
+    def created_at_ts(self, obj):
+        if not obj.created_at:
+            return '-'
+        from datetime import datetime
+        from django.utils import timezone as tz
+        try:
+            dt = datetime.fromtimestamp(obj.created_at)
+            return tz.make_aware(dt, tz.get_current_timezone()).strftime('%Y-%m-%d %H:%M')
+        except Exception:
+            return str(obj.created_at)
+    created_at_ts.short_description = 'ایجاد'
+
+    def updated_at_ts(self, obj):
+        if not obj.updated_at:
+            return '-'
+        from datetime import datetime
+        from django.utils import timezone as tz
+        try:
+            dt = datetime.fromtimestamp(obj.updated_at)
+            return tz.make_aware(dt, tz.get_current_timezone()).strftime('%Y-%m-%d %H:%M')
+        except Exception:
+            return str(obj.updated_at)
+    updated_at_ts.short_description = 'به‌روزرسانی'
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

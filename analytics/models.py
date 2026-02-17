@@ -37,6 +37,38 @@ class SourceUser(models.Model):
         db_table = 'user'  
         app_label = 'analytics'
 
+class ChatSyncState(models.Model):
+    """ذخیره زمان آخرین سینک چت‌ها برای سینک افزایشی"""
+    key = models.CharField(max_length=50, unique=True, default='default', verbose_name="کلید")
+    last_sync_at = models.DateTimeField(null=True, blank=True, verbose_name="آخرین زمان سینک")
+
+    class Meta:
+        verbose_name = "وضعیت سینک چت"
+        verbose_name_plural = "وضعیت سینک چت‌ها"
+
+    def __str__(self):
+        return f"آخرین سینک: {self.last_sync_at}"
+
+
+class SyncedChat(models.Model):
+    """کپی محلی چت‌های سینک‌شده از OpenWebUI (از آخرین زمان به‌روزرسانی)"""
+    id = models.CharField(primary_key=True, max_length=255, verbose_name="شناسه چت")
+    user_id = models.CharField(max_length=255, verbose_name="کاربر")
+    title = models.TextField(blank=True, verbose_name="عنوان")
+    chat = models.TextField(blank=True, null=True, verbose_name="محتوای چت (JSON)")
+    created_at = models.BigIntegerField(default=0, verbose_name="زمان ایجاد در منبع")
+    updated_at = models.BigIntegerField(default=0, verbose_name="زمان به‌روزرسانی در منبع")
+    synced_at = models.DateTimeField(auto_now=True, verbose_name="زمان سینک در سیستم")
+
+    class Meta:
+        verbose_name = "چت سینک‌شده"
+        verbose_name_plural = "چت‌های سینک‌شده"
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"{self.user_id} - {self.title[:30] if self.title else self.id}"
+
+
 class Employee(models.Model):
     user_id = models.CharField(max_length=255, unique=True, verbose_name="شناسه کاربر")
     name = models.CharField(max_length=255, verbose_name="نام")
