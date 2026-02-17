@@ -22,11 +22,12 @@ def _log_truncated(log, prefix: str, text: str, max_len: int = 500):
     log.info("%s %s", prefix, s)
 
 class MockSourceChat:
-    def __init__(self, id, user_id, content, created_at):
+    def __init__(self, id, user_id, content, created_at, updated_at=None):
         self.id = id
         self.user_id = user_id
         self.content = content
         self.created_at = created_at
+        self.updated_at = updated_at if updated_at is not None else created_at
 
 class MockOpenWebUIService:
     MOCK_CHATS = [
@@ -262,7 +263,8 @@ class OpenWebUIService:
                             id=sc.id,
                             user_id=sc.user_id,
                             content=content_to_analyze,
-                            created_at=sc.created_at
+                            created_at=sc.created_at,
+                            updated_at=getattr(sc, 'updated_at', sc.created_at) or sc.created_at,
                         ))
                 except Exception as json_err:
                     logger.warning(f"Error parsing chat JSON for {sc.id}: {json_err}")
@@ -434,24 +436,27 @@ class ReportGenerationService:
         sentiment_count = 0
         
         for chat in chats:
+            chat_updated_at = getattr(chat, 'updated_at', None) or 0
             existing_analysis = ChatAnalysis.objects.filter(source_chat_id=chat.id).first()
-            
-            if not existing_analysis:
+            if existing_analysis and (existing_analysis.source_chat_updated_at or 0) >= chat_updated_at:
+                pass
+            else:
                 task = report.task or AnalysisTask.objects.filter(task_type='chat_analysis', is_active=True).first()
                 prompt = task.prompt_template if task else None
-                
                 result = self.ollama.analyze_text(chat.content, prompt)
-                
                 if result:
-                    existing_analysis = ChatAnalysis.objects.create(
+                    existing_analysis, _ = ChatAnalysis.objects.update_or_create(
                         source_chat_id=chat.id,
-                        user_id=chat.user_id,
-                        task=task,
-                        sentiment_score=result.get('sentiment_score', 5),
-                        category=result.get('category', 'Unknown'),
-                        is_risky=result.get('is_risky', False),
-                        summary=result.get('summary', ''),
-                        raw_analysis=result
+                        defaults={
+                            'user_id': chat.user_id,
+                            'task': task,
+                            'sentiment_score': result.get('sentiment_score', 5),
+                            'category': result.get('category', 'Unknown'),
+                            'is_risky': result.get('is_risky', False),
+                            'summary': result.get('summary', ''),
+                            'raw_analysis': result,
+                            'source_chat_updated_at': chat_updated_at,
+                        },
                     )
             
             if existing_analysis:
@@ -1012,8 +1017,10 @@ class UserReportService:
         skipped_existing = 0
 
         for chat in chats:
+            chat_updated_at = getattr(chat, 'updated_at', None) or 0
             existing = ChatAnalysis.objects.filter(source_chat_id=chat.id, user_id=user_id).first()
-            if existing:
+            # اگر قبلاً همین نسخهٔ چت (یا جدیدتر) تحلیل شده، رد کن
+            if existing and (existing.source_chat_updated_at or 0) >= chat_updated_at:
                 skipped_existing += 1
                 continue
 
@@ -1021,15 +1028,18 @@ class UserReportService:
             if not result:
                 continue
 
-            ChatAnalysis.objects.create(
+            ChatAnalysis.objects.update_or_create(
                 source_chat_id=chat.id,
-                user_id=chat.user_id,
-                task=task,
-                sentiment_score=result.get('sentiment_score', 5),
-                category=result.get('category', 'Unknown'),
-                is_risky=result.get('is_risky', False),
-                summary=result.get('summary', ''),
-                raw_analysis=result,
+                defaults={
+                    'user_id': chat.user_id,
+                    'task': task,
+                    'sentiment_score': result.get('sentiment_score', 5),
+                    'category': result.get('category', 'Unknown'),
+                    'is_risky': result.get('is_risky', False),
+                    'summary': result.get('summary', ''),
+                    'raw_analysis': result,
+                    'source_chat_updated_at': chat_updated_at,
+                },
             )
             analyzed += 1
 

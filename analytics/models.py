@@ -134,7 +134,9 @@ class ChatAnalysis(models.Model):
     user_id = models.CharField(max_length=255, verbose_name="کاربر")
     task = models.ForeignKey(AnalysisTask, on_delete=models.SET_NULL, null=True, blank=True, verbose_name="تسک")
     timestamp = models.DateTimeField(default=timezone.now, verbose_name="زمان تحلیل")
-    
+    # زمان به‌روزرسانی چت در منبع (OpenWebUI) هنگام تحلیل؛ برای جلوگیری از تحلیل دوبارهٔ همان نسخه و امکان تحلیل مجدد وقتی پیام‌های جدید اضافه شده
+    source_chat_updated_at = models.BigIntegerField(null=True, blank=True, verbose_name="updated_at چت در منبع هنگام تحلیل")
+
     sentiment_score = models.IntegerField(default=5, validators=[MinValueValidator(1), MaxValueValidator(10)], verbose_name="امتیاز احساس (۱-۱۰)")
     category = models.CharField(max_length=100, verbose_name="دسته‌بندی موضوعی")
     is_risky = models.BooleanField(default=False, verbose_name="ریسک امنیتی/رفتاری")

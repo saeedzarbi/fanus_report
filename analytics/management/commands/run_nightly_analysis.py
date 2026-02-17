@@ -46,21 +46,27 @@ class Command(BaseCommand):
 
             analyzed_count = 0
             for chat in raw_chats:
-                if ChatAnalysis.objects.filter(source_chat_id=chat.id, task=task).exists():
+                chat_updated_at = getattr(chat, 'updated_at', None) or 0
+                existing = ChatAnalysis.objects.filter(source_chat_id=chat.id, task=task).first()
+                if existing and (existing.source_chat_updated_at or 0) >= chat_updated_at:
                     continue
-
-                result = ollama.analyze_text(chat.content, task.prompt_template)
-                
+                content = getattr(chat, 'content', None) or (getattr(chat, 'chat', '') or '')[:2000]
+                if not content:
+                    continue
+                result = ollama.analyze_text(content, task.prompt_template)
                 if result:
-                    ChatAnalysis.objects.create(
+                    ChatAnalysis.objects.update_or_create(
                         source_chat_id=chat.id,
-                        user_id=chat.user_id,
-                        task=task,
-                        sentiment_score=result.get('sentiment_score', 5),
-                        category=result.get('category', 'Unknown'),
-                        is_risky=result.get('is_risky', False),
-                        summary=result.get('summary', ''),
-                        raw_analysis=result
+                        defaults={
+                            'user_id': chat.user_id,
+                            'task': task,
+                            'sentiment_score': result.get('sentiment_score', 5),
+                            'category': result.get('category', 'Unknown'),
+                            'is_risky': result.get('is_risky', False),
+                            'summary': result.get('summary', ''),
+                            'raw_analysis': result,
+                            'source_chat_updated_at': chat_updated_at,
+                        },
                     )
                     analyzed_count += 1
                     self.stdout.write(self.style.SUCCESS(f"✅ تحلیل شد: {chat.user_id}"))
