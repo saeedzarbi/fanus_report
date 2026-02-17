@@ -7,7 +7,7 @@ from .models import (
     ChatSyncState, SyncedChat,
     SourceUser, SourceChat
 )
-from .services import ReportGenerationService, UserSyncService, ChatSyncService
+from .services import ReportGenerationService, UserSyncService, ChatSyncService, UserReportService
 
 ALL_USERS_UP_TO_DATE_MSG = "همه کاربران به‌روز هستند."
 
@@ -23,6 +23,7 @@ class EmployeeAdmin(admin.ModelAdmin):
         'sync_users_deactivate_action',
         'sync_users_delete_action',
         'sync_chats_action',
+        'analyze_last_20_chats_action',
     ]
 
     def changelist_view(self, request, extra_context=None):
@@ -236,6 +237,48 @@ class EmployeeAdmin(admin.ModelAdmin):
             )
 
     sync_chats_action.short_description = "💬 سینک چت‌های کاربران (از آخرین به‌روزرسانی)"
+
+    def analyze_last_20_chats_action(self, request, queryset):
+        """
+        تحلیل آخرین 20 چت برای هر کارمند انتخاب‌شده.
+        از سرویس UserReportService استفاده می‌کند و نتایج را در ChatAnalysis ذخیره می‌کند.
+        """
+        service = UserReportService()
+        total_analyzed = 0
+        total_skipped = 0
+        users_without_employee = 0
+
+        for employee in queryset:
+            result = service.analyze_last_chats(employee.user_id, limit=20)
+            if not result.get('employee_found'):
+                users_without_employee += 1
+                continue
+
+            total_analyzed += result.get('analyzed', 0)
+            total_skipped += result.get('skipped_existing', 0)
+
+        msg_parts = []
+        if total_analyzed:
+            msg_parts.append(f"{total_analyzed} چت جدید تحلیل شد")
+        if total_skipped:
+            msg_parts.append(f"{total_skipped} چت قبلاً تحلیل شده بود")
+        if users_without_employee:
+            msg_parts.append(f"{users_without_employee} کاربر بدون رکورد معتبر کارمند بود")
+
+        if msg_parts:
+            self.message_user(
+                request,
+                " | ".join(msg_parts),
+                messages.SUCCESS
+            )
+        else:
+            self.message_user(
+                request,
+                "چتی برای تحلیل پیدا نشد.",
+                messages.INFO
+            )
+
+    analyze_last_20_chats_action.short_description = "🧠 تحلیل آخرین ۲۰ چت کاربر"
 
 @admin.register(UserGroup)
 class UserGroupAdmin(admin.ModelAdmin):

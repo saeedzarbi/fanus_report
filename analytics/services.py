@@ -963,3 +963,59 @@ class UserReportService:
                 count=Count('id')
             ).order_by('-count').first()
         }
+
+    def analyze_last_chats(self, user_id: str, limit: int = 20):
+        """
+        تحلیل آخرین N چت یک کاربر مشخص و ذخیره نتیجه در ChatAnalysis.
+        از تسک فعال 'chat_analysis' برای ساخت پرامپت استفاده می‌کند.
+        """
+        employee = Employee.objects.filter(user_id=user_id).first()
+        if not employee:
+            return {
+                'user_id': user_id,
+                'employee_found': False,
+                'analyzed': 0,
+                'skipped_existing': 0,
+            }
+
+        # دریافت آخرین چت‌ها از OpenWebUI
+        chats = self.openwebui.get_chats(
+            user_ids=[user_id],
+            limit=limit,
+        )
+
+        task = AnalysisTask.objects.filter(task_type='chat_analysis', is_active=True).first()
+        prompt = task.prompt_template if task else None
+
+        analyzed = 0
+        skipped_existing = 0
+
+        for chat in chats:
+            existing = ChatAnalysis.objects.filter(source_chat_id=chat.id, user_id=user_id).first()
+            if existing:
+                skipped_existing += 1
+                continue
+
+            result = self.ollama.analyze_text(chat.content, prompt)
+            if not result:
+                continue
+
+            ChatAnalysis.objects.create(
+                source_chat_id=chat.id,
+                user_id=chat.user_id,
+                task=task,
+                sentiment_score=result.get('sentiment_score', 5),
+                category=result.get('category', 'Unknown'),
+                is_risky=result.get('is_risky', False),
+                summary=result.get('summary', ''),
+                raw_analysis=result,
+            )
+            analyzed += 1
+
+        return {
+            'user_id': user_id,
+            'employee_found': True,
+            'requested': limit,
+            'analyzed': analyzed,
+            'skipped_existing': skipped_existing,
+        }
