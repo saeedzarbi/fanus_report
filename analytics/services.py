@@ -285,7 +285,7 @@ class OpenWebUIService:
             return 0
 
 class OllamaService:
-    def __init__(self, base_url="http://localhost:11434", model="llama3"):
+    def __init__(self, base_url="http://localhost:11434", model="qwen2.5:14b"):
         self.base_url = base_url
         self.model = model
         self.use_mock = getattr(settings, 'USE_MOCK_DATA', False)
