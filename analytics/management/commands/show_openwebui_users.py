@@ -67,98 +67,43 @@ class Command(BaseCommand):
             db_conn.ensure_connection()
             self.stdout.write(self.style.SUCCESS('✅ اتصال به دیتابیس برقرار شد'))
 
-            # بررسی ساختار جدول با raw SQL
-            self.stdout.write("🔍 در حال بررسی ساختار جدول...")
-            cursor = db_conn.cursor()
-            
-            # بررسی ستون‌های موجود در جدول
-            table_name = SourceUser._meta.db_table
-            cursor.execute("""
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name = %s
-            """, [table_name])
-            
-            available_columns = {row[0] for row in cursor.fetchall()}
-            
-            if not available_columns:
-                self.stdout.write(
-                    self.style.ERROR(
-                        f'❌ جدول "{table_name}" یافت نشد! '
-                        f'لطفاً مطمئن شوید که نام جدول در مدل SourceUser صحیح است.'
-                    )
-                )
-                return
-            
-            has_is_active = 'is_active' in available_columns
-            has_created_at = 'created_at' in available_columns
-            
-            self.stdout.write(
-                self.style.SUCCESS(
-                    f'✅ ستون‌های موجود: {", ".join(sorted(available_columns))}'
-                )
-            )
+            self.stdout.write("📊 در حال استخراج کاربران (با سرویس UserSyncService)...")
 
-            # استخراج کاربران با raw SQL برای اطمینان از خواندن فقط ستون‌های موجود
-            self.stdout.write("📊 در حال استخراج کاربران...")
-            
-            # تعیین ستون‌های مورد نیاز
-            needed_columns = ['id', 'name', 'username', 'email']
-            if 'created_at' in available_columns:
-                needed_columns.append('created_at')
-            if 'updated_at' in available_columns:
-                needed_columns.append('updated_at')
-            if has_is_active:
-                needed_columns.append('is_active')
-            
-            # فیلتر کردن ستون‌های مورد نیاز که واقعاً وجود دارند
-            columns_to_select = [col for col in needed_columns if col in available_columns]
-            
-            # ساخت کوئری SQL
-            columns_str = ', '.join([f'"{col}"' for col in columns_to_select])
-            where_clause = ''
-            order_clause = ''
-            
-            # اضافه کردن فیلتر is_active اگر درخواست شده و ستون وجود دارد
-            if active_only and has_is_active:
-                where_clause = 'WHERE "is_active" = true'
-            elif active_only:
-                self.stdout.write(
-                    self.style.WARNING('⚠️  ستون is_active وجود ندارد. نمایش همه کاربران...')
-                )
-            
-            # اضافه کردن مرتب‌سازی اگر created_at وجود دارد
-            if has_created_at and 'created_at' in columns_to_select:
-                order_clause = 'ORDER BY "created_at" DESC'
-            
-            # ساخت کوئری نهایی
-            sql_query = f'SELECT {columns_str} FROM "{table_name}" {where_clause} {order_clause} LIMIT {limit}'
-            
-            cursor.execute(sql_query)
-            rows = cursor.fetchall()
-            
-            # تبدیل نتایج به لیست اشیاء mock برای سازگاری با کد نمایش
-            users = []
-            for row in rows:
-                user_dict = dict(zip(columns_to_select, row))
-                # ساخت یک شیء mock که مانند SourceUser رفتار می‌کند
-                user_obj = type('User', (), {
-                    'id': str(user_dict.get('id', '')),
-                    'name': user_dict.get('name'),
-                    'username': user_dict.get('username'),
-                    'email': user_dict.get('email'),
-                    'created_at': user_dict.get('created_at'),
-                    'updated_at': user_dict.get('updated_at'),
-                    'is_active': user_dict.get('is_active', True) if has_is_active else True,
-                })()
-                users.append(user_obj)
+            # استفاده از همان منطقی که در UserSyncService.get_source_users استفاده می‌شود
+            sync_service = UserSyncService()
+            source_users = sync_service.get_source_users()
 
-            if not users:
+            # فیلتر فعال‌ها در صورت نیاز
+            if active_only:
+                source_users = [u for u in source_users if u.get('is_active', True)]
+
+            total_count = len(source_users)
+
+            if not source_users:
                 self.stdout.write(self.style.WARNING('⚠️  هیچ کاربری یافت نشد!'))
                 return
 
+            # اعمال limit
+            source_users = source_users[:limit]
+
+            # تبدیل به اشیاء سازگار با توابع display_*
+            users = []
+            for u in source_users:
+                user_obj = type('User', (), {
+                    'id': str(u.get('id', '')),
+                    'name': u.get('name'),
+                    'username': u.get('username'),
+                    'email': u.get('email'),
+                    'created_at': None,
+                    'updated_at': None,
+                    'is_active': u.get('is_active', True),
+                })()
+                users.append(user_obj)
+
+            has_is_active = True  # چون خودمان فیلد is_active را تولید می‌کنیم
+
             self.stdout.write(
-                self.style.SUCCESS(f'✅ {len(users)} کاربر یافت شد\n')
+                self.style.SUCCESS(f'✅ {len(users)} کاربر برای نمایش بارگذاری شد\n')
             )
 
             # نمایش کاربران
@@ -169,24 +114,13 @@ class Command(BaseCommand):
             elif output_format == 'csv':
                 self.display_csv(users, has_is_active)
 
-            # آمار کلی با raw SQL
-            cursor.execute(f'SELECT COUNT(*) FROM "{table_name}"')
-            total_count = cursor.fetchone()[0]
-            
+            # آمار کلی
             self.stdout.write("\n" + "="*80)
-            self.stdout.write(f"📈 آمار کلی:")
-            self.stdout.write(f"   کل کاربران: {total_count}")
-            
-            # فقط اگر ستون is_active وجود دارد، آمار فعال/غیرفعال را نمایش بده
-            if has_is_active:
-                cursor.execute(f'SELECT COUNT(*) FROM "{table_name}" WHERE "is_active" = true')
-                active_count = cursor.fetchone()[0]
-                self.stdout.write(f"   کاربران فعال: {active_count}")
-                self.stdout.write(f"   کاربران غیرفعال: {total_count - active_count}")
-            else:
-                self.stdout.write(
-                    self.style.WARNING('   ⚠️  اطلاعات وضعیت فعال/غیرفعال در دسترس نیست')
-                )
+            self.stdout.write("📈 آمار کلی:")
+            self.stdout.write(f"   کل کاربران (قبل از limit): {total_count}")
+            active_count = sum(1 for u in source_users if u.get('is_active', True))
+            self.stdout.write(f"   کاربران فعال (در لیست نمایش): {active_count}")
+            self.stdout.write(f"   کاربران غیرفعال (در لیست نمایش): {len(source_users) - active_count}")
 
             # انجام سینک اگر درخواست شده باشد
             if sync or sync_deactivate or sync_delete:
@@ -265,10 +199,7 @@ class Command(BaseCommand):
             )
             self.stdout.write(
                 self.style.WARNING(
-                    '💡 لطفاً مطمئن شوید که:\n'
-                    '   1. دیتابیس PostgreSQL در حال اجرا است\n'
-                    '   2. اطلاعات اتصال در settings.py صحیح است\n'
-                    '   3. جدول user در دیتابیس openwebui وجود دارد'
+                    '💡 لطفاً مطمئن شوید که دیتابیس PostgreSQL در حال اجرا است و اطلاعات اتصال در settings.py صحیح است.'
                 )
             )
         except DatabaseError as e:

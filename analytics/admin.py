@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.core.management import call_command
 from django.contrib import messages
+from django.db.utils import OperationalError
 from .models import (
     Employee, UserGroup, AnalysisTask, ChatAnalysis,
     ReportType, Report, ReportSchedule,
@@ -454,6 +455,21 @@ class SourceUserAdmin(admin.ModelAdmin):
     search_fields = ('id', 'name', 'username', 'email')
     readonly_fields = ('id', 'name', 'username', 'email', 'created_at', 'updated_at', 'is_active')
     ordering = ('name',)
+
+    def get_queryset(self, request):
+        """
+        تلاش برای خواندن کاربران از دیتابیس openwebui_db.
+        اگر جدول user وجود نداشته باشد، به‌جای خطا، queryset خالی برمی‌گردانیم.
+        """
+        try:
+            return super().get_queryset(request).using('openwebui_db')
+        except OperationalError:
+            self.message_user(
+                request,
+                "جدول user در دیتابیس OpenWebUI یافت نشد؛ نمایش کاربران ممکن نیست.",
+                level=messages.WARNING,
+            )
+            return self.model.objects.none()
 
     def has_add_permission(self, request):
         return False
