@@ -113,7 +113,7 @@ METABASE_DASHBOARDS = [
         'name': 'داشبورد مدیریت فانوس',
         'description': 'نمایش نمودارهای تحلیل رفتار کاربران',
         
-        'public_uuid': 'aa7b6449-343e-4949-8035-f737ec7ad31f', 
+        'public_uuid': 'c78528c9-74da-4b1e-a3d4-ef7da634e7d5', 
     },
     {
         'name': 'پروفایل اختصاصی کاربر',
