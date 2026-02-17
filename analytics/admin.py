@@ -520,6 +520,21 @@ class SourceChatAdmin(admin.ModelAdmin):
     readonly_fields = ('id', 'user_id', 'title', 'share_id', 'archived', 'created_at', 'updated_at', 'chat', 'pinned', 'meta', 'folder_id')
     ordering = ('-updated_at',)
 
+    def get_queryset(self, request):
+        """
+        خواندن چت‌ها از دیتابیس openwebui_db (جدول chat).
+        اگر اتصال برقرار نباشد یا جدول وجود نداشته باشد، queryset خالی برمی‌گردانیم.
+        """
+        try:
+            return super().get_queryset(request).using('openwebui_db')
+        except OperationalError:
+            self.message_user(
+                request,
+                "جدول chat در دیتابیس OpenWebUI یافت نشد یا اتصال برقرار نیست. تنظیمات openwebui_db را بررسی کنید.",
+                level=messages.WARNING,
+            )
+            return self.model.objects.none()
+
     def title_short(self, obj):
         return (obj.title[:50] + '...') if obj.title and len(obj.title) > 50 else (obj.title or '-')
     title_short.short_description = 'عنوان'

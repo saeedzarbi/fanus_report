@@ -804,7 +804,20 @@ class ChatSyncService:
             if last_sync_at is not None:
                 last_ts = int(last_sync_at.timestamp())
                 query = query.filter(updated_at__gt=last_ts)
-            source_chats = query.order_by('updated_at')[:limit]
+            # ابتدا سعی می‌کنیم فقط چت‌های بعد از آخرین زمان سینک را بگیریم
+            source_chats_qs = query.order_by('updated_at')[:limit]
+            source_chats = list(source_chats_qs)
+
+            # اگر هیچ چتی در بازهٔ بعد از آخرین سینک پیدا نشد،
+            # به‌عنوان fallback، همهٔ چت‌ها (تا حد limit) را می‌گیریم.
+            # این رفتار کمک می‌کند اگر کاربری در بازهٔ قبلی چتی نداشته،
+            # دفعهٔ بعد کل تاریخچه‌اش سینک شود.
+            if last_sync_at is not None and not source_chats:
+                logger.info("هیچ چت جدیدی بعد از آخرین زمان سینک یافت نشد؛ دریافت همهٔ چت‌ها تا محدودیت تعیین‌شده.")
+                source_chats = list(
+                    SourceChat.objects.using('openwebui_db').all().order_by('updated_at')[:limit]
+                )
+
             max_updated = None
             for sc in source_chats:
                 try:
