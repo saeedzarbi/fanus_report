@@ -12,6 +12,15 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
+def _log_truncated(log, prefix: str, text: str, max_len: int = 500):
+    """برای چاپ در لاگ؛ متن طولانی را کوتاه می‌کند."""
+    if not text:
+        log.info("%s (خالی)", prefix)
+        return
+    s = text if len(text) <= max_len else text[:max_len] + "..."
+    log.info("%s %s", prefix, s)
+
 class MockSourceChat:
     def __init__(self, id, user_id, content, created_at):
         self.id = id
@@ -312,6 +321,10 @@ class OllamaService:
 
         full_prompt = f"{system_instruction}\n\nUser Message to Analyze: \"{text}\""
 
+        # لاگ: پیامی که به AI ارسال می‌شود
+        _log_truncated(logger, "Ollama درخواست (متن کاربر برای تحلیل):", text, max_len=500)
+        logger.info("Ollama پرامپت کامل (شامل دستورات): %s", full_prompt[:800] + ("..." if len(full_prompt) > 800 else ""))
+
         payload = {
             "model": self.model,
             "prompt": full_prompt,
@@ -326,7 +339,14 @@ class OllamaService:
             response = requests.post(url, json=payload, timeout=60)
             if response.status_code == 200:
                 data = response.json()
-                return json.loads(data['response'])
+                raw_response = data.get('response', '')
+                # لاگ: پاسخی که AI برگردانده (قبل از پارس تا در صورت خطا هم دیده شود)
+                logger.info("Ollama پاسخ خام: %s", raw_response[:1000] + ("..." if len(raw_response) > 1000 else ""))
+                parsed = json.loads(raw_response)
+                logger.info("Ollama پاسخ پارس‌شده: sentiment_score=%s, category=%s, is_risky=%s, summary=%s",
+                            parsed.get('sentiment_score'), parsed.get('category'), parsed.get('is_risky'),
+                            (parsed.get('summary') or '')[:200])
+                return parsed
             else:
                 logger.error(f"Ollama Error: {response.text}")
                 return None
@@ -357,6 +377,9 @@ class OllamaService:
 
         full_prompt = f"{system_instruction}\n\nUser Chat History:\n{chats_text}"
 
+        _log_truncated(logger, "Ollama درخواست (تاریخچه چت برای پیش‌بینی):", chats_text, max_len=600)
+        logger.info("Ollama پرامپت پیش‌بینی (ابتدای متن): %s", full_prompt[:600] + ("..." if len(full_prompt) > 600 else ""))
+
         payload = {
             "model": self.model,
             "prompt": full_prompt,
@@ -371,7 +394,10 @@ class OllamaService:
             response = requests.post(url, json=payload, timeout=120)
             if response.status_code == 200:
                 data = response.json()
-                return json.loads(data['response'])
+                raw_response = data.get('response', '')
+                parsed = json.loads(raw_response)
+                logger.info("Ollama پاسخ پیش‌بینی: %s", raw_response[:800] + ("..." if len(raw_response) > 800 else ""))
+                return parsed
             else:
                 logger.error(f"Ollama Error: {response.text}")
                 return None

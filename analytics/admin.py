@@ -1,3 +1,4 @@
+import threading
 from django.contrib import admin
 from django.core.management import call_command
 from django.contrib import messages
@@ -25,6 +26,7 @@ class EmployeeAdmin(admin.ModelAdmin):
         'sync_users_delete_action',
         'sync_chats_action',
         'analyze_last_20_chats_action',
+        'run_behavioral_analysis_background_action',
     ]
 
     def changelist_view(self, request, extra_context=None):
@@ -281,6 +283,36 @@ class EmployeeAdmin(admin.ModelAdmin):
             )
 
     analyze_last_20_chats_action.short_description = "🧠 تحلیل آخرین ۲۰ چت کاربر"
+
+    def run_behavioral_analysis_background_action(self, request, queryset):
+        """
+        اجرای تحلیل رفتاری در پس‌زمینه (تسک). صفحه بلافاصله برمی‌گردد و تحلیل در سرور ادامه می‌یابد.
+        برای مشاهدهٔ پیام ارسالی به AI و پاسخ AI، لاگ‌های کنسول سرور را ببینید.
+        """
+        limit = 20
+        employee_ids = list(queryset.values_list('user_id', flat=True))
+        if not employee_ids:
+            self.message_user(request, "هیچ کارمندی انتخاب نشده است.", messages.WARNING)
+            return
+
+        def run_analysis():
+            service = UserReportService()
+            for user_id in employee_ids:
+                try:
+                    service.analyze_last_chats(user_id, limit=limit)
+                except Exception:
+                    pass  # خطاها در logger ثبت می‌شوند
+
+        t = threading.Thread(target=run_analysis, daemon=True)
+        t.start()
+        self.message_user(
+            request,
+            f"تحلیل رفتاری برای {len(employee_ids)} کاربر در پس‌زمینه شروع شد. "
+            "لاگ‌های «درخواست به AI» و «پاسخ AI» را در کنسول سرور ببینید.",
+            messages.SUCCESS,
+        )
+
+    run_behavioral_analysis_background_action.short_description = "⏳ اجرای تحلیل رفتاری در پس‌زمینه (تسک)"
 
 @admin.register(UserGroup)
 class UserGroupAdmin(admin.ModelAdmin):

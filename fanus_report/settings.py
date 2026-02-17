@@ -196,3 +196,27 @@ JAZZMIN_UI_TWEAKS = {
     "rtl": False,
 }
 
+# لاگ درخواست/پاسخ تحلیل رفتاری (پیام ارسالی به AI و پاسخ AI در کنسول چاپ می‌شود)
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {message}",
+            "style": "{",
+        },
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+    },
+    "loggers": {
+        "analytics": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+}
