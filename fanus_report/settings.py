@@ -102,10 +102,10 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Metabase Configuration
-METABASE_SITE_URL = 'http://127.0.0.1:3105'
+METABASE_SITE_URL = 'http://127.0.0.1:3150'
 METABASE_SECRET_KEY = '03cf53547d8e2c8e949a026dcd4134a169777ddfd989326358e148d7bee1e712'  # Secret Key برای signed embedding (اختیاری)
 
-METABASE_SITE_URL = "http://127.0.0.1:3105"
+METABASE_SITE_URL = "http://127.0.0.1:3150"
 
 METABASE_DASHBOARDS = [
     {
