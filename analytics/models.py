@@ -38,7 +38,7 @@ class SourceUser(models.Model):
     # اگر نسخهٔ OpenWebUI شما ستون is_active دارد، می‌توانید دوباره فیلد مدل اضافه کنید.
 
     class Meta:
-        managed = True
+        managed = False  # جدول user فقط در دیتابیس OpenWebUI است؛ در default ایجاد/تغییر نده
         db_table = 'user'
         app_label = 'analytics'
 
