@@ -118,11 +118,10 @@ METABASE_DASHBOARDS = [
     {
         'name': 'پروفایل اختصاصی کاربر',
         'description': 'تحلیل رفتار و سلامت روان کاربر',
-        'public_uuid': 'efb57138-34c0-4586-9908-d5ce6926f00e',
+        'public_uuid': '2be28624-58ed-4c40-81fd-dfa7d8ac7e64',
         'filter_param': 'userid', 
     }
 ]
-
 METABASE_SECRET_KEY = None
 JAZZMIN_SETTINGS = {
     "site_title": "سامانه هوشمند فانوس",
